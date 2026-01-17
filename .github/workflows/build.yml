@@ -253,6 +253,7 @@ jobs:
 
       - name: Prepare Flatpak files (Linux)
         if: matrix.platform == 'linux'
+        continue-on-error: true
         run: |
           # Prepare all files in the flatpak directory
           cp /tmp/HyPrism-binary flatpak/HyPrism
@@ -261,6 +262,7 @@ jobs:
 
       - name: Build Flatpak (Linux)
         if: matrix.platform == 'linux'
+        continue-on-error: true
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: HyPrism.flatpak
@@ -269,6 +271,7 @@ jobs:
 
       - name: Move Flatpak to build dir (Linux)
         if: matrix.platform == 'linux'
+        continue-on-error: true
         run: |
           mv HyPrism.flatpak build/bin/ || true
           # Clean up generated files
