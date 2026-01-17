@@ -198,7 +198,7 @@ export LD_LIBRARY_PATH="%s:$LD_LIBRARY_PATH"
 	go func() {
 		cmd.Wait()
 		gameProcess = nil
-		// Don't set gameRunning = false here, let IsGameRunning check the actual process
+		gameRunning = false
 	}()
 
 	return nil
@@ -241,30 +241,27 @@ func KillGame() error {
 
 // IsGameRunning checks if the game process is still running
 func IsGameRunning() bool {
-	if !gameRunning {
-		return false
-	}
-	
-	// Check if the actual game process is running by looking for the process
+	// Active check for the game process by name
 	var isRunning bool
 	
 	if runtime.GOOS == "darwin" {
-		// On macOS, check using pgrep for the Hytale app
-		out, _ := exec.Command("pgrep", "-f", "Hytale.app/Contents/MacOS").Output()
-		isRunning = len(out) > 0
+		// Check for Hytale process on macOS
+		out, err := exec.Command("pgrep", "-f", "Hytale").Output()
+		isRunning = err == nil && len(out) > 0
 	} else if runtime.GOOS == "windows" {
-		// On Windows, check using tasklist
-		out, _ := exec.Command("tasklist", "/FI", "IMAGENAME eq HytaleClient.exe").Output()
-		isRunning = strings.Contains(string(out), "HytaleClient.exe")
+		// Check for HytaleClient.exe on Windows
+		out, err := exec.Command("tasklist", "/FI", "IMAGENAME eq HytaleClient.exe", "/FO", "CSV", "/NH").Output()
+		isRunning = err == nil && strings.Contains(string(out), "HytaleClient.exe")
 	} else {
-		// On Linux, check using pgrep
-		out, _ := exec.Command("pgrep", "-f", "HytaleClient").Output()
-		isRunning = len(out) > 0
+		// Linux
+		out, err := exec.Command("pgrep", "-f", "HytaleClient").Output()
+		isRunning = err == nil && len(out) > 0
 	}
 	
+	// Update global state
+	gameRunning = isRunning
 	if !isRunning {
 		gameProcess = nil
-		gameRunning = false
 	}
 	
 	return isRunning

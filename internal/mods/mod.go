@@ -5,27 +5,26 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"HyPrism/internal/env"
 )
 
 // Mod represents a mod
 type Mod struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Version      string    `json:"version"`
-	Author       string    `json:"author"`
-	Description  string    `json:"description"`
-	DownloadURL  string    `json:"downloadUrl,omitempty"`
-	CurseForgeID int       `json:"curseforgeId,omitempty"`
-	Enabled      bool      `json:"enabled"`
-	InstalledAt  time.Time `json:"installedAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	FilePath     string    `json:"filePath"`
-	IconURL      string    `json:"iconUrl,omitempty"`
-	Downloads    int       `json:"downloads,omitempty"`
-	Category     string    `json:"category,omitempty"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Version      string `json:"version"`
+	Author       string `json:"author"`
+	Description  string `json:"description"`
+	DownloadURL  string `json:"downloadUrl,omitempty"`
+	CurseForgeID int    `json:"curseforgeId,omitempty"`
+	Enabled      bool   `json:"enabled"`
+	InstalledAt  string `json:"installedAt"`  // ISO 8601 format
+	UpdatedAt    string `json:"updatedAt"`    // ISO 8601 format
+	FilePath     string `json:"filePath"`
+	IconURL      string `json:"iconUrl,omitempty"`
+	Downloads    int    `json:"downloads,omitempty"`
+	Category     string `json:"category,omitempty"`
 }
 
 // ModManifest stores installed mods info

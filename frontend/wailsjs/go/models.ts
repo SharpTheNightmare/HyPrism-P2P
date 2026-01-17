@@ -174,8 +174,7 @@ export namespace mods {
 	    fileName: string;
 	    fileLength: number;
 	    downloadUrl: string;
-	    // Go type: time
-	    fileDate: any;
+	    fileDate: string;
 	    releaseType: number;
 	
 	    static createFrom(source: any = {}) {
@@ -190,27 +189,9 @@ export namespace mods {
 	        this.fileName = source["fileName"];
 	        this.fileLength = source["fileLength"];
 	        this.downloadUrl = source["downloadUrl"];
-	        this.fileDate = this.convertValues(source["fileDate"], null);
+	        this.fileDate = source["fileDate"];
 	        this.releaseType = source["releaseType"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class ModAuthor {
 	    id: number;
@@ -248,6 +229,28 @@ export namespace mods {
 	        this.iconUrl = source["iconUrl"];
 	    }
 	}
+	export class ModScreenshot {
+	    id: number;
+	    modId: number;
+	    title: string;
+	    description: string;
+	    thumbnailUrl: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ModScreenshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.modId = source["modId"];
+	        this.title = source["title"];
+	        this.description = source["description"];
+	        this.thumbnailUrl = source["thumbnailUrl"];
+	        this.url = source["url"];
+	    }
+	}
 	export class ModLogo {
 	    id: number;
 	    modId: number;
@@ -277,13 +280,11 @@ export namespace mods {
 	    slug: string;
 	    summary: string;
 	    downloadCount: number;
-	    // Go type: time
-	    dateCreated: any;
-	    // Go type: time
-	    dateModified: any;
-	    // Go type: time
-	    dateReleased: any;
+	    dateCreated: string;
+	    dateModified: string;
+	    dateReleased: string;
 	    logo?: ModLogo;
+	    screenshots: ModScreenshot[];
 	    categories: ModCategory[];
 	    authors: ModAuthor[];
 	    latestFiles: ModFile[];
@@ -302,10 +303,11 @@ export namespace mods {
 	        this.slug = source["slug"];
 	        this.summary = source["summary"];
 	        this.downloadCount = source["downloadCount"];
-	        this.dateCreated = this.convertValues(source["dateCreated"], null);
-	        this.dateModified = this.convertValues(source["dateModified"], null);
-	        this.dateReleased = this.convertValues(source["dateReleased"], null);
+	        this.dateCreated = source["dateCreated"];
+	        this.dateModified = source["dateModified"];
+	        this.dateReleased = source["dateReleased"];
 	        this.logo = this.convertValues(source["logo"], ModLogo);
+	        this.screenshots = this.convertValues(source["screenshots"], ModScreenshot);
 	        this.categories = this.convertValues(source["categories"], ModCategory);
 	        this.authors = this.convertValues(source["authors"], ModAuthor);
 	        this.latestFiles = this.convertValues(source["latestFiles"], ModFile);
@@ -340,10 +342,8 @@ export namespace mods {
 	    downloadUrl?: string;
 	    curseforgeId?: number;
 	    enabled: boolean;
-	    // Go type: time
-	    installedAt: any;
-	    // Go type: time
-	    updatedAt: any;
+	    installedAt: string;
+	    updatedAt: string;
 	    filePath: string;
 	    iconUrl?: string;
 	    downloads?: number;
@@ -363,32 +363,15 @@ export namespace mods {
 	        this.downloadUrl = source["downloadUrl"];
 	        this.curseforgeId = source["curseforgeId"];
 	        this.enabled = source["enabled"];
-	        this.installedAt = this.convertValues(source["installedAt"], null);
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.installedAt = source["installedAt"];
+	        this.updatedAt = source["updatedAt"];
 	        this.filePath = source["filePath"];
 	        this.iconUrl = source["iconUrl"];
 	        this.downloads = source["downloads"];
 	        this.category = source["category"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
+	
 	
 	
 	
@@ -527,10 +510,8 @@ export namespace worlds {
 	    id: string;
 	    name: string;
 	    path: string;
-	    // Go type: time
-	    createdAt: any;
-	    // Go type: time
-	    lastPlayed: any;
+	    createdAt: string;
+	    lastPlayed: string;
 	    sizeBytes: number;
 	    gameMode: string;
 	    seed?: string;
@@ -547,8 +528,8 @@ export namespace worlds {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.path = source["path"];
-	        this.createdAt = this.convertValues(source["createdAt"], null);
-	        this.lastPlayed = this.convertValues(source["lastPlayed"], null);
+	        this.createdAt = source["createdAt"];
+	        this.lastPlayed = source["lastPlayed"];
 	        this.sizeBytes = source["sizeBytes"];
 	        this.gameMode = source["gameMode"];
 	        this.seed = source["seed"];
@@ -556,24 +537,6 @@ export namespace worlds {
 	        this.backupOf = source["backupOf"];
 	        this.thumbnailUrl = source["thumbnailUrl"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }

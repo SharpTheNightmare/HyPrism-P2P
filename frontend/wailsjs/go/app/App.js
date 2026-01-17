@@ -94,6 +94,10 @@ export function GetModCategories() {
   return window['go']['app']['App']['GetModCategories']();
 }
 
+export function GetModDetails(arg1) {
+  return window['go']['app']['App']['GetModDetails'](arg1);
+}
+
 export function GetMusicEnabled() {
   return window['go']['app']['App']['GetMusicEnabled']();
 }

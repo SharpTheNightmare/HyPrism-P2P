@@ -54,6 +54,8 @@ export function GetLogs():Promise<string>;
 
 export function GetModCategories():Promise<Array<mods.ModCategory>>;
 
+export function GetModDetails(arg1:number):Promise<mods.CurseForgeMod>;
+
 export function GetMusicEnabled():Promise<boolean>;
 
 export function GetNews(arg1:number):Promise<Array<news.NewsItem>>;

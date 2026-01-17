@@ -13,17 +13,17 @@ import (
 
 // World represents a Hytale world/save
 type World struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Path         string    `json:"path"`
-	CreatedAt    time.Time `json:"createdAt"`
-	LastPlayed   time.Time `json:"lastPlayed"`
-	SizeBytes    int64     `json:"sizeBytes"`
-	GameMode     string    `json:"gameMode"`
-	Seed         string    `json:"seed,omitempty"`
-	IsBackup     bool      `json:"isBackup"`
-	BackupOf     string    `json:"backupOf,omitempty"`
-	ThumbnailURL string    `json:"thumbnailUrl,omitempty"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	CreatedAt    string `json:"createdAt"`  // ISO 8601 format
+	LastPlayed   string `json:"lastPlayed"` // ISO 8601 format
+	SizeBytes    int64  `json:"sizeBytes"`
+	GameMode     string `json:"gameMode"`
+	Seed         string `json:"seed,omitempty"`
+	IsBackup     bool   `json:"isBackup"`
+	BackupOf     string `json:"backupOf,omitempty"`
+	ThumbnailURL string `json:"thumbnailUrl,omitempty"`
 }
 
 // WorldManifest stores world info
@@ -137,8 +137,8 @@ func ScanWorlds() ([]World, error) {
 			ID:         entry.Name(),
 			Name:       entry.Name(),
 			Path:       worldPath,
-			CreatedAt:  info.ModTime(),
-			LastPlayed: info.ModTime(),
+			CreatedAt:  info.ModTime().Format(time.RFC3339),
+			LastPlayed: info.ModTime().Format(time.RFC3339),
 			SizeBytes:  size,
 			GameMode:   "Survival",
 		}
@@ -155,7 +155,7 @@ func ScanWorlds() ([]World, error) {
 
 	// Sort by last played
 	sort.Slice(worlds, func(i, j int) bool {
-		return worlds[i].LastPlayed.After(worlds[j].LastPlayed)
+		return worlds[i].LastPlayed > worlds[j].LastPlayed
 	})
 
 	// Save updated manifest
@@ -255,7 +255,7 @@ func BackupWorld(worldID string) (*World, error) {
 		ID:         backupName,
 		Name:       backupName,
 		Path:       backupPath,
-		CreatedAt:  time.Now(),
+		CreatedAt:  time.Now().Format(time.RFC3339),
 		LastPlayed: world.LastPlayed,
 		SizeBytes:  size,
 		GameMode:   world.GameMode,
@@ -291,8 +291,8 @@ func RestoreBackup(backupID string) (*World, error) {
 		ID:         worldID,
 		Name:       fmt.Sprintf("Restored - %s", backupID),
 		Path:       worldPath,
-		CreatedAt:  time.Now(),
-		LastPlayed: time.Now(),
+		CreatedAt:  time.Now().Format(time.RFC3339),
+		LastPlayed: time.Now().Format(time.RFC3339),
 		SizeBytes:  size,
 		GameMode:   "Survival",
 	}
@@ -341,8 +341,8 @@ func GetBackups() ([]World, error) {
 			ID:         entry.Name(),
 			Name:       entry.Name(),
 			Path:       backupPath,
-			CreatedAt:  info.ModTime(),
-			LastPlayed: info.ModTime(),
+			CreatedAt:  info.ModTime().Format(time.RFC3339),
+			LastPlayed: info.ModTime().Format(time.RFC3339),
 			SizeBytes:  size,
 			IsBackup:   true,
 		}
@@ -352,7 +352,7 @@ func GetBackups() ([]World, error) {
 
 	// Sort by creation time (newest first)
 	sort.Slice(backups, func(i, j int) bool {
-		return backups[i].CreatedAt.After(backups[j].CreatedAt)
+		return backups[i].CreatedAt > backups[j].CreatedAt
 	})
 
 	return backups, nil

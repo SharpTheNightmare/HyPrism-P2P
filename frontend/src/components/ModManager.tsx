@@ -25,7 +25,8 @@ interface CurseForgeMod {
   slug: string;
   summary: string;
   downloadCount: number;
-  logo?: { thumbnailUrl: string };
+  logo?: { thumbnailUrl: string; url: string };
+  screenshots?: { id: number; title: string; thumbnailUrl: string; url: string }[];
   authors: { name: string }[];
   categories: { name: string }[];
   dateModified?: string;
@@ -42,6 +43,7 @@ interface ModManagerProps {
   getModCategories: () => Promise<{ id: number; name: string }[]>;
   openModsFolder: () => Promise<void>;
   checkModUpdates?: () => Promise<{ modId: string; hasUpdate: boolean; newVersion: string }[]>;
+  getModDetails?: (modId: number) => Promise<CurseForgeMod>;
 }
 
 const formatDownloads = (count: number): string => {
@@ -76,6 +78,7 @@ export const ModManager: React.FC<ModManagerProps> = ({
   getModCategories,
   openModsFolder,
   checkModUpdates,
+  getModDetails,
 }) => {
   const [activeTab, setActiveTab] = useState<'browse' | 'installed'>('installed');
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +95,8 @@ export const ModManager: React.FC<ModManagerProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedMod, setSelectedMod] = useState<CurseForgeMod | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -197,6 +202,21 @@ export const ModManager: React.FC<ModManagerProps> = ({
     }
   }, [activeTab, searchResults.length, loadPopularMods]);
 
+  // Re-sort when sortBy changes
+  useEffect(() => {
+    if (searchResults.length === 0) return;
+    
+    const sortedMods = [...searchResults];
+    if (sortBy === 'downloads') {
+      sortedMods.sort((a, b) => b.downloadCount - a.downloadCount);
+    } else if (sortBy === 'updated') {
+      sortedMods.sort((a, b) => new Date(b.dateModified || 0).getTime() - new Date(a.dateModified || 0).getTime());
+    } else if (sortBy === 'name') {
+      sortedMods.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    setSearchResults(sortedMods);
+  }, [sortBy]);
+
   const handleSearch = async () => {
     setIsLoading(true);
     setError(null);
@@ -232,6 +252,23 @@ export const ModManager: React.FC<ModManagerProps> = ({
       setError(err.message || 'Failed to install mod');
     }
     setIsInstalling(null);
+  };
+
+  const handleViewDetails = async (mod: CurseForgeMod) => {
+    setIsLoadingDetails(true);
+    setSelectedMod(mod);
+    
+    // If we have getModDetails, fetch full details with screenshots
+    if (getModDetails) {
+      try {
+        const details = await getModDetails(mod.id);
+        setSelectedMod(details);
+      } catch (err) {
+        console.error('Failed to load mod details:', err);
+        // Keep the basic mod info if details fail
+      }
+    }
+    setIsLoadingDetails(false);
   };
 
   const handleUninstall = async (modId: string) => {
@@ -367,10 +404,7 @@ export const ModManager: React.FC<ModManagerProps> = ({
               </select>
               <select
                 value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as SortOption);
-                  setTimeout(handleSearch, 100);
-                }}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#FFA845]/50"
               >
                 <option value="downloads">Most Downloads</option>
@@ -559,7 +593,8 @@ export const ModManager: React.FC<ModManagerProps> = ({
                       key={mod.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-colors"
+                      onClick={() => handleViewDetails(mod)}
+                      className="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-[#FFA845]/30 hover:bg-white/[0.07] transition-colors cursor-pointer"
                     >
                       <div className="flex items-start gap-4">
                         {mod.logo?.thumbnailUrl ? (
@@ -577,6 +612,7 @@ export const ModManager: React.FC<ModManagerProps> = ({
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-400 hover:text-white"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <ExternalLink size={14} />
                             </a>
@@ -598,7 +634,10 @@ export const ModManager: React.FC<ModManagerProps> = ({
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => !installed && handleInstall(mod)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            !installed && handleInstall(mod);
+                          }}
                           disabled={installed || isInstalling === mod.id}
                           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                             installed
@@ -636,6 +675,156 @@ export const ModManager: React.FC<ModManagerProps> = ({
           )}
         </div>
       </motion.div>
+
+      {/* Mod Detail Modal */}
+      <AnimatePresence>
+        {selectedMod && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedMod(null)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-8"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#1a1a1a] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-white/10 flex items-start gap-4">
+                {selectedMod.logo?.url || selectedMod.logo?.thumbnailUrl ? (
+                  <img 
+                    src={selectedMod.logo?.url || selectedMod.logo?.thumbnailUrl} 
+                    alt={selectedMod.name} 
+                    className="w-20 h-20 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Package size={32} className="text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold text-white">{selectedMod.name}</h2>
+                  <p className="text-gray-400 mt-1">
+                    by {selectedMod.authors?.[0]?.name || 'Unknown'}
+                    <span className="mx-2">•</span>
+                    {formatDownloads(selectedMod.downloadCount)} downloads
+                  </p>
+                  {selectedMod.categories?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedMod.categories.slice(0, 3).map((cat, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-white/10 rounded text-xs text-gray-300">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedMod(null)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {isLoadingDetails ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={32} className="text-[#FFA845] animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Description */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
+                      <p className="text-gray-300 text-sm leading-relaxed">{selectedMod.summary}</p>
+                    </div>
+
+                    {/* Screenshots */}
+                    {selectedMod.screenshots && selectedMod.screenshots.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-3">Screenshots</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          {selectedMod.screenshots.slice(0, 4).map((screenshot) => (
+                            <a
+                              key={screenshot.id}
+                              href={screenshot.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block aspect-video rounded-lg overflow-hidden border border-white/10 hover:border-[#FFA845]/50 transition-colors"
+                            >
+                              <img
+                                src={screenshot.thumbnailUrl || screenshot.url}
+                                alt={screenshot.title || 'Screenshot'}
+                                className="w-full h-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mod Info */}
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                        {selectedMod.dateModified && (
+                          <span>
+                            <Clock size={14} className="inline mr-1" />
+                            Updated {formatDate(selectedMod.dateModified)}
+                          </span>
+                        )}
+                        <a
+                          href={`https://www.curseforge.com/hytale/${selectedMod.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-[#FFA845] hover:underline"
+                        >
+                          <ExternalLink size={14} />
+                          View on CurseForge
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-white/10">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    handleInstall(selectedMod);
+                    setSelectedMod(null);
+                  }}
+                  disabled={isModInstalled(selectedMod.id) || isInstalling === selectedMod.id}
+                  className={`w-full py-3 rounded-xl font-bold text-lg transition-colors ${
+                    isModInstalled(selectedMod.id)
+                      ? 'bg-green-500/20 text-green-400 cursor-default'
+                      : 'bg-gradient-to-r from-[#FFA845] to-[#FF6B35] text-black hover:shadow-lg'
+                  }`}
+                >
+                  {isInstalling === selectedMod.id ? (
+                    <Loader2 size={24} className="animate-spin mx-auto" />
+                  ) : isModInstalled(selectedMod.id) ? (
+                    'Already Installed'
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Download size={20} />
+                      Install Mod
+                    </span>
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

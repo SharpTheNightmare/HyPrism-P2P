@@ -41,21 +41,22 @@ type Pagination struct {
 
 // CurseForgeMod represents a mod from CurseForge
 type CurseForgeMod struct {
-	ID             int              `json:"id"`
-	GameID         int              `json:"gameId"`
-	Name           string           `json:"name"`
-	Slug           string           `json:"slug"`
-	Summary        string           `json:"summary"`
-	DownloadCount  int              `json:"downloadCount"`
-	DateCreated    time.Time        `json:"dateCreated"`
-	DateModified   time.Time        `json:"dateModified"`
-	DateReleased   time.Time        `json:"dateReleased"`
-	Logo           *ModLogo         `json:"logo"`
-	Categories     []ModCategory    `json:"categories"`
-	Authors        []ModAuthor      `json:"authors"`
-	LatestFiles    []ModFile        `json:"latestFiles"`
-	MainFileID     int              `json:"mainFileId"`
-	AllowModDistribution bool       `json:"allowModDistribution"`
+	ID             int             `json:"id"`
+	GameID         int             `json:"gameId"`
+	Name           string          `json:"name"`
+	Slug           string          `json:"slug"`
+	Summary        string          `json:"summary"`
+	DownloadCount  int             `json:"downloadCount"`
+	DateCreated    string          `json:"dateCreated"`   // ISO 8601 format
+	DateModified   string          `json:"dateModified"`  // ISO 8601 format
+	DateReleased   string          `json:"dateReleased"`  // ISO 8601 format
+	Logo           *ModLogo        `json:"logo"`
+	Screenshots    []ModScreenshot `json:"screenshots"`
+	Categories     []ModCategory   `json:"categories"`
+	Authors        []ModAuthor     `json:"authors"`
+	LatestFiles    []ModFile       `json:"latestFiles"`
+	MainFileID     int             `json:"mainFileId"`
+	AllowModDistribution bool      `json:"allowModDistribution"`
 }
 
 // ModLogo represents mod logo
@@ -84,16 +85,26 @@ type ModAuthor struct {
 	URL  string `json:"url"`
 }
 
+// ModScreenshot represents a mod screenshot
+type ModScreenshot struct {
+	ID           int    `json:"id"`
+	ModID        int    `json:"modId"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	ThumbnailURL string `json:"thumbnailUrl"`
+	URL          string `json:"url"`
+}
+
 // ModFile represents a mod file
 type ModFile struct {
-	ID           int       `json:"id"`
-	ModID        int       `json:"modId"`
-	DisplayName  string    `json:"displayName"`
-	FileName     string    `json:"fileName"`
-	FileLength   int64     `json:"fileLength"`
-	DownloadURL  string    `json:"downloadUrl"`
-	FileDate     time.Time `json:"fileDate"`
-	ReleaseType  int       `json:"releaseType"` // 1=Release, 2=Beta, 3=Alpha
+	ID          int    `json:"id"`
+	ModID       int    `json:"modId"`
+	DisplayName string `json:"displayName"`
+	FileName    string `json:"fileName"`
+	FileLength  int64  `json:"fileLength"`
+	DownloadURL string `json:"downloadUrl"`
+	FileDate    string `json:"fileDate"` // ISO 8601 format
+	ReleaseType int    `json:"releaseType"` // 1=Release, 2=Beta, 3=Alpha
 }
 
 // SearchModsParams represents search parameters
@@ -266,7 +277,7 @@ func DownloadMod(ctx context.Context, cfMod CurseForgeMod, progressCallback func
 	// Get the latest file
 	latestFile := cfMod.LatestFiles[0]
 	for _, f := range cfMod.LatestFiles {
-		if f.FileDate.After(latestFile.FileDate) {
+		if f.FileDate > latestFile.FileDate {
 			latestFile = f
 		}
 	}
@@ -325,8 +336,8 @@ func DownloadMod(ctx context.Context, cfMod CurseForgeMod, progressCallback func
 		DownloadURL:  latestFile.DownloadURL,
 		CurseForgeID: cfMod.ID,
 		Enabled:      true,
-		InstalledAt:  time.Now(),
-		UpdatedAt:    time.Now(),
+		InstalledAt:  time.Now().Format(time.RFC3339),
+		UpdatedAt:    time.Now().Format(time.RFC3339),
 		FilePath:     destPath,
 		IconURL:      iconURL,
 		Downloads:    cfMod.DownloadCount,
@@ -397,7 +408,7 @@ func CheckForUpdates(ctx context.Context) ([]Mod, error) {
 
 		// Check if there's a newer file
 		for _, file := range cfMod.LatestFiles {
-			if file.FileDate.After(mod.UpdatedAt) {
+			if file.FileDate > mod.UpdatedAt {
 				modsWithUpdates = append(modsWithUpdates, mod)
 				break
 			}

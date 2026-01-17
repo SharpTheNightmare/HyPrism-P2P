@@ -199,6 +199,11 @@ func (a *App) GetInstalledMods() ([]mods.Mod, error) {
 	return mods.GetInstalledMods()
 }
 
+// GetModDetails returns detailed info about a specific mod from CurseForge
+func (a *App) GetModDetails(modID int) (*mods.CurseForgeMod, error) {
+	return mods.GetModDetails(a.ctx, modID)
+}
+
 // InstallMod downloads and installs a mod from CurseForge
 func (a *App) InstallMod(modID int) error {
 	cfMod, err := mods.GetModDetails(a.ctx, modID)

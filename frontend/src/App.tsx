@@ -18,13 +18,11 @@ import {
   DeleteGame, 
   Update,
   ExitGame,
-  GetAvailableVersions,
-  GetCurrentVersion,
-  DownloadVersion,
   IsGameRunning,
   // Mod Manager
   SearchMods,
   GetInstalledMods,
+  GetModDetails,
   InstallMod,
   UninstallMod,
   ToggleMod,
@@ -40,11 +38,8 @@ const App: React.FC = () => {
   
   // Download state
   const [progress, setProgress] = useState<number>(0);
-  const [status, setStatus] = useState<string>("Ready to play");
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isGameRunning, setIsGameRunning] = useState<boolean>(false);
-  const [currentFile, setCurrentFile] = useState<string>("");
-  const [downloadSpeed, setDownloadSpeed] = useState<string>("");
   const [downloaded, setDownloaded] = useState<number>(0);
   const [total, setTotal] = useState<number>(0);
   
@@ -58,10 +53,6 @@ const App: React.FC = () => {
   const [showModManager, setShowModManager] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
 
-  // Version state
-  const [currentVersion, setCurrentVersion] = useState<string>("Not installed");
-  const [latestVersion, setLatestVersion] = useState<number>(0);
-
   // Game state polling
   useEffect(() => {
     if (!isGameRunning) return;
@@ -71,7 +62,6 @@ const App: React.FC = () => {
         const running = await IsGameRunning();
         if (!running) {
           setIsGameRunning(false);
-          setStatus("Ready to play");
           setProgress(0);
         }
       } catch (e) {
@@ -85,28 +75,16 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize
     GetNick().then((n: string) => n && setUsername(n));
-    
-    // Load version info
-    GetCurrentVersion().then(v => setCurrentVersion(v || "Not installed")).catch(console.error);
-    GetAvailableVersions().then(v => {
-      if (v && typeof v === 'object') {
-        setLatestVersion(v.release || 0);
-      }
-    }).catch(console.error);
 
     // Event listeners
     const unsubProgress = EventsOn('progress-update', (data: any) => {
       setProgress(data.progress);
-      setStatus(data.message);
-      setDownloadSpeed(data.speed);
-      setCurrentFile(data.currentFile);
       setDownloaded(data.downloaded);
       setTotal(data.total);
       
       if (data.progress >= 100 && data.stage === 'launch') {
         setIsGameRunning(true);
         setIsDownloading(false);
-        setStatus("Game is running");
       }
     });
 
@@ -189,19 +167,6 @@ const App: React.FC = () => {
     }
     setIsGameRunning(false);
     setProgress(0);
-    setStatus("Ready to play");
-  };
-
-  const handleInstallVersion = async (_version: number) => {
-    setIsDownloading(true);
-    try {
-      await DownloadVersion("release", username);
-      const newVersion = await GetCurrentVersion();
-      setCurrentVersion(newVersion || "Not installed");
-    } catch (err) {
-      console.error('Install failed:', err);
-      setIsDownloading(false);
-    }
   };
 
   return (
@@ -240,17 +205,11 @@ const App: React.FC = () => {
         <ControlSection 
           onPlay={handlePlay}
           onExit={handleExit}
-          onInstallVersion={handleInstallVersion}
           isDownloading={isDownloading}
           isGameRunning={isGameRunning}
           progress={progress}
-          status={status}
-          speed={downloadSpeed}
           downloaded={downloaded}
           total={total}
-          currentFile={currentFile}
-          currentVersion={currentVersion}
-          latestVersion={latestVersion}
           actions={{
             openFolder: OpenFolder,
             showDelete: () => setShowDelete(true),
@@ -282,6 +241,7 @@ const App: React.FC = () => {
           onClose={() => setShowModManager(false)}
           searchMods={SearchMods}
           getInstalledMods={GetInstalledMods}
+          getModDetails={GetModDetails}
           installMod={InstallMod}
           uninstallMod={UninstallMod}
           toggleMod={ToggleMod}

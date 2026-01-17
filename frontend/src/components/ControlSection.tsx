@@ -1,21 +1,14 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { FolderOpen, Trash, Play, Package, Square, Download } from 'lucide-react';
+import { FolderOpen, Trash, Play, Package, Square } from 'lucide-react';
 
 interface ControlSectionProps {
   onPlay: () => void;
   onExit?: () => void;
-  onInstallVersion?: (version: number) => void;
   isDownloading: boolean;
   isGameRunning: boolean;
   progress: number;
-  status: string;
-  speed: string;
   downloaded: number;
   total: number;
-  currentFile: string;
-  currentVersion: string;
-  latestVersion: number;
   actions: {
     openFolder: () => void;
     showDelete: () => void;
@@ -24,11 +17,9 @@ interface ControlSectionProps {
 }
 
 const NavBtn: React.FC<{ onClick?: () => void; icon: React.ReactNode; tooltip?: string }> = ({ onClick, icon, tooltip }) => (
-  <motion.button
-    whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 168, 69, 0.1)' }}
-    whileTap={{ scale: 0.95 }}
+  <button
     onClick={onClick}
-    className="w-12 h-12 rounded-xl glass border border-white/5 flex items-center justify-center text-white/60 hover:text-[#FFA845] transition-colors relative group"
+    className="w-12 h-12 rounded-xl glass border border-white/5 flex items-center justify-center text-white/60 hover:text-[#FFA845] hover:bg-[#FFA845]/10 active:scale-95 transition-all duration-150 relative group"
     title={tooltip}
   >
     {icon}
@@ -37,7 +28,7 @@ const NavBtn: React.FC<{ onClick?: () => void; icon: React.ReactNode; tooltip?: 
         {tooltip}
       </span>
     )}
-  </motion.button>
+  </button>
 );
 
 const formatBytes = (bytes: number): string => {
@@ -51,29 +42,15 @@ const formatBytes = (bytes: number): string => {
 export const ControlSection: React.FC<ControlSectionProps> = ({
   onPlay,
   onExit,
-  onInstallVersion,
   isDownloading,
   isGameRunning,
   progress,
-  status,
-  speed,
   downloaded,
   total,
-  currentFile,
-  currentVersion,
-  latestVersion,
   actions
 }) => {
-  // Parse current version number
-  const currentVersionNum = parseInt(currentVersion.match(/build (\d+)/)?.[1] || '0');
-  const hasUpdate = currentVersionNum > 0 && latestVersion > currentVersionNum;
-
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex gap-4"
-    >
+    <div className="flex gap-4">
       {/* Left side - Navigation buttons */}
       <div className="flex flex-col gap-3">
         <div className="flex gap-3">
@@ -85,101 +62,42 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
         {/* Play/Exit button */}
         <div className="flex gap-3">
           {isGameRunning ? (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              whileHover={{ scale: 1.02 }}
+            <button
               onClick={onExit}
-              className="flex-1 h-24 rounded-2xl font-black text-4xl tracking-tight flex items-center justify-center gap-4 transition-all duration-300 bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-lg hover:shadow-red-500/25 cursor-pointer"
+              className="flex-1 h-24 rounded-2xl font-black text-4xl tracking-tight flex items-center justify-center gap-4 bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-lg hover:shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
               <Square size={32} fill="currentColor" />
               <span>EXIT</span>
-            </motion.button>
+            </button>
+          ) : isDownloading ? (
+            <div className="flex-1 h-24 rounded-2xl bg-[#151515] border border-white/10 flex flex-col items-center justify-center gap-2 px-6 relative overflow-hidden">
+              {/* Progress bar background */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-r from-[#FFA845]/30 to-[#FF6B35]/30 transition-all duration-300"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+              
+              {/* Content */}
+              <div className="relative z-10 flex flex-col items-center">
+                <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
+                {total > 0 && (
+                  <span className="text-sm text-gray-400">
+                    {formatBytes(downloaded)} / {formatBytes(total)}
+                  </span>
+                )}
+              </div>
+            </div>
           ) : (
-            <motion.button
-              whileTap={isDownloading ? {} : { scale: 0.98 }}
-              whileHover={isDownloading ? {} : { scale: 1.02 }}
+            <button
               onClick={onPlay}
-              disabled={isDownloading}
-              className={`
-                flex-1 h-24 rounded-2xl font-black text-4xl tracking-tight
-                flex items-center justify-center gap-4
-                transition-all duration-300
-                ${isDownloading 
-                  ? 'bg-[#151515] text-white/50 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-[#FFA845] to-[#FF6B35] text-white hover:shadow-lg hover:shadow-[#FFA845]/25 cursor-pointer'
-                }
-              `}
+              className="flex-1 h-24 rounded-2xl font-black text-4xl tracking-tight flex items-center justify-center gap-4 bg-gradient-to-r from-[#FFA845] to-[#FF6B35] text-white hover:shadow-lg hover:shadow-[#FFA845]/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
-              {isDownloading ? (
-                <span className="text-2xl font-bold">DOWNLOADING...</span>
-              ) : (
-                <>
-                  <Play size={32} fill="currentColor" />
-                  <span>PLAY</span>
-                </>
-              )}
-            </motion.button>
+              <Play size={32} fill="currentColor" />
+              <span>PLAY</span>
+            </button>
           )}
         </div>
       </div>
-
-      {/* Right side - Version & Status */}
-      <div className="flex-1 glass rounded-2xl border border-white/5 p-5 flex flex-col justify-between min-w-[280px]">
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-white">
-              {isGameRunning ? 'Game Running' : isDownloading ? 'Downloading Hytale' : 'Hytale'}
-            </h3>
-          </div>
-          
-          {/* Current Version & Update */}
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm text-gray-400">
-              Installed: <span className="text-white font-medium">{currentVersion || 'Not installed'}</span>
-            </span>
-            {hasUpdate && !isDownloading && (
-              <button
-                onClick={() => onInstallVersion?.(latestVersion)}
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#FFA845]/20 text-[#FFA845] text-xs font-medium hover:bg-[#FFA845]/30 transition-colors"
-              >
-                <Download size={12} />
-                Update to build {latestVersion}
-              </button>
-            )}
-          </div>
-          
-          <p className="text-sm text-gray-500">{status}</p>
-        </div>
-
-        {isDownloading && (
-          <div className="mt-4">
-            {/* Progress bar */}
-            <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(progress, 100)}%` }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#FFA845] to-[#FF6B35] rounded-full"
-              />
-            </div>
-
-            {/* Stats */}
-            <div className="flex justify-between items-center mt-3 text-xs text-gray-400">
-              <div className="flex gap-4">
-                <span>{formatBytes(downloaded)} / {formatBytes(total)}</span>
-                {speed && <span className="text-[#FFA845]">{speed}</span>}
-              </div>
-              <span className="font-bold text-white">{Math.round(progress)}%</span>
-            </div>
-
-            {currentFile && (
-              <p className="text-xs text-gray-500 mt-2 truncate">
-                {currentFile}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    </motion.div>
+    </div>
   );
 };

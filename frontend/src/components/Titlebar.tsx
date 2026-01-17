@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Minus, X } from 'lucide-react';
 import { Quit, WindowMinimise } from '../../wailsjs/runtime/runtime';
 import { GetLauncherVersion } from '../../wailsjs/go/app/App';
@@ -30,23 +29,19 @@ export const Titlebar: React.FC = () => {
 
       {/* Window Controls */}
       <div className="flex items-center gap-1" style={{ '--wails-draggable': 'no-drag' } as React.CSSProperties}>
-        <motion.button
-          whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={() => WindowMinimise()}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 active:scale-95 transition-all duration-150"
         >
           <Minus size={14} className="text-white/60" />
-        </motion.button>
+        </button>
         
-        <motion.button
-          whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.8)' }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={() => Quit()}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-red-500/80 active:scale-95 transition-all duration-150"
         >
-          <X size={14} className="text-white/60" />
-        </motion.button>
+          <X size={14} className="text-white/60 hover:text-white" />
+        </button>
       </div>
     </div>
   );
