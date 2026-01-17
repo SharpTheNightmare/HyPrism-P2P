@@ -50,7 +50,12 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
       
       - name: Build
-        run: wails build -clean
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF" ]; then
+            VERSION="dev"
+          fi
+          wails build -clean -ldflags "-X 'HyPrism/app.AppVersion=$VERSION'"
       
       - name: Create DMG (macOS)
         if: matrix.platform == 'macos'

@@ -53,22 +53,36 @@ func Launch(playerName string, version string) error {
 	userDataDir := filepath.Join(baseDir, "UserData")
 	_ = os.MkdirAll(userDataDir, 0755)
 
-	// Create java symlink structure matching working installation
-	// Working installation has: java/Contents/Home/bin/java
-	javaDir := filepath.Join(baseDir, "java")
+	// Set up Java path based on OS
+	var jrePath string
 	jreDir := filepath.Join(baseDir, "jre")
-	javaHomeBin := filepath.Join(javaDir, "Contents", "Home", "bin")
 	
-	// Create symlink structure if it doesn't exist
-	if _, err := os.Stat(javaHomeBin); err != nil {
-		os.RemoveAll(javaDir)
-		os.MkdirAll(filepath.Join(javaDir, "Contents", "Home"), 0755)
-		os.Symlink(filepath.Join(jreDir, "bin"), filepath.Join(javaDir, "Contents", "Home", "bin"))
-		os.Symlink(filepath.Join(jreDir, "lib"), filepath.Join(javaDir, "Contents", "Home", "lib"))
+	switch runtime.GOOS {
+	case "darwin":
+		// macOS: Create symlink structure matching working installation
+		// Working installation has: java/Contents/Home/bin/java
+		javaDir := filepath.Join(baseDir, "java")
+		javaHomeBin := filepath.Join(javaDir, "Contents", "Home", "bin")
+		
+		if _, err := os.Stat(javaHomeBin); err != nil {
+			os.RemoveAll(javaDir)
+			os.MkdirAll(filepath.Join(javaDir, "Contents", "Home"), 0755)
+			os.Symlink(filepath.Join(jreDir, "bin"), filepath.Join(javaDir, "Contents", "Home", "bin"))
+			os.Symlink(filepath.Join(jreDir, "lib"), filepath.Join(javaDir, "Contents", "Home", "lib"))
+		}
+		jrePath = filepath.Join(baseDir, "java", "Contents", "Home", "bin", "java")
+	case "windows":
+		// Windows: Use direct path to java.exe in jre directory
+		jrePath = filepath.Join(jreDir, "bin", "java.exe")
+	default:
+		// Linux: Use direct path to java in jre directory
+		jrePath = filepath.Join(jreDir, "bin", "java")
 	}
 
-	// Use the same java path as TEMPLATE.sh: java/Contents/Home/bin/java
-	jrePath := filepath.Join(baseDir, "java", "Contents", "Home", "bin", "java")
+	// Verify Java exists
+	if _, err := os.Stat(jrePath); err != nil {
+		return fmt.Errorf("Java not found at %s: %w", jrePath, err)
+	}
 
 	// Create and run a shell script - this is PROVEN to work
 	scriptPath := filepath.Join(baseDir, "launch.sh")
@@ -139,9 +153,30 @@ export LD_LIBRARY_PATH="%s:$LD_LIBRARY_PATH"
 			"--name", playerName,
 		)
 	} else if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "start", scriptPath)
+		// Windows: Launch the executable directly without cmd wrapper
+		cmd = exec.Command(clientPath,
+			"--app-dir", gameDir,
+			"--user-dir", userDataDir,
+			"--java-exec", jrePath,
+			"--auth-mode", "offline",
+			"--uuid", "00000000-1337-1337-1337-000000000000",
+			"--name", playerName,
+		)
+		// Detach the process so it runs independently
+		cmd.SysProcAttr = getWindowsSysProcAttr()
 	} else {
-		cmd = exec.Command("/bin/bash", "-l", scriptPath)
+		// Linux: Launch directly with LD_LIBRARY_PATH set
+		clientDir := filepath.Join(gameDir, "Client")
+		cmd = exec.Command(clientPath,
+			"--app-dir", gameDir,
+			"--user-dir", userDataDir,
+			"--java-exec", jrePath,
+			"--auth-mode", "offline",
+			"--uuid", "00000000-1337-1337-1337-000000000000",
+			"--name", playerName,
+		)
+		// Set LD_LIBRARY_PATH for Linux
+		cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s:%s", clientDir, os.Getenv("LD_LIBRARY_PATH")))
 	}
 	
 	cmd.Dir = baseDir

@@ -99,8 +99,8 @@ func (a *App) emitError(err error) {
 	}
 }
 
-// AppVersion is the current launcher version
-var AppVersion string = config.Default().Version
+// AppVersion is the current launcher version - set at build time via ldflags
+var AppVersion string = "dev"
 
 // GetVersions returns current and latest game versions
 func (a *App) GetVersions() (currentVersion string, latestVersion string) {
