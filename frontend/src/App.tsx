@@ -140,15 +140,14 @@ const App: React.FC = () => {
     setCurrentBranch(branch);
     await SetVersionType(branch);
     
-    // Load versions for new branch and set to latest
+    // Load versions for new branch and set to latest (version 0)
     setIsLoadingVersions(true);
     try {
       const versions = await GetVersionList(branch);
       setAvailableVersions(versions);
-      if (versions.length > 0) {
-        setCurrentVersion(versions[0]); // Set to latest version
-        await SetSelectedVersion(versions[0]);
-      }
+      // Always set to "latest" (version 0) when switching branches
+      setCurrentVersion(0);
+      await SetSelectedVersion(0);
     } catch (e) {
       console.error('Failed to load versions for branch:', e);
     }
@@ -202,13 +201,9 @@ const App: React.FC = () => {
         const installed = await GetInstalledVersionsForBranch(branch);
         setInstalledVersions(installed);
         
-        // Get saved version
-        const savedVersion = await GetSelectedVersion();
-        if (savedVersion > 0 && versions.includes(savedVersion)) {
-          setCurrentVersion(savedVersion);
-        } else if (versions.length > 0) {
-          setCurrentVersion(versions[0]);
-        }
+        // Always start with "latest" (version 0) when launcher opens
+        setCurrentVersion(0);
+        await SetSelectedVersion(0);
         setIsLoadingVersions(false);
       } catch (e) {
         console.error('Failed to load settings:', e);
