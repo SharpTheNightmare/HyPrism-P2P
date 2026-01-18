@@ -82,6 +82,36 @@ func (a *App) Shutdown(ctx context.Context) {
 	fmt.Println("HyPrism shutting down...")
 }
 
+// SelectInstanceDirectory opens a folder picker dialog and saves the selected directory
+func (a *App) SelectInstanceDirectory() (string, error) {
+	selectedDir, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Instances Directory",
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to open directory dialog: %w", err)
+	}
+	
+	if selectedDir == "" {
+		// User cancelled the dialog
+		return "", nil
+	}
+	
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(selectedDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory: %w", err)
+	}
+	
+	// Save to config
+	a.cfg.CustomInstanceDir = selectedDir
+	env.SetCustomInstanceDir(selectedDir)
+	if err := config.Save(a.cfg); err != nil {
+		return "", fmt.Errorf("failed to save config: %w", err)
+	}
+	
+	fmt.Printf("Instance directory updated to: %s\n", selectedDir)
+	return selectedDir, nil
+}
+
 // progressCallback sends progress updates to frontend
 func (a *App) progressCallback(stage string, progress float64, message string, currentFile string, speed string, downloaded, total int64) {
 	wailsRuntime.EventsEmit(a.ctx, "progress-update", ProgressUpdate{

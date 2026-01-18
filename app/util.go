@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-// OpenFolder opens the game folder in the system file explorer
+// OpenFolder opens the instances folder in the system file explorer
 func (a *App) OpenFolder() error {
-	path := env.GetDefaultAppDir()
+	path := env.GetInstancesDir()
 
 	// Verify folder exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {

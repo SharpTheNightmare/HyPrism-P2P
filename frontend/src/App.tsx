@@ -27,7 +27,9 @@ import {
   GetVersionList,
   IsVersionInstalled,
   GetInstalledVersionsForBranch,
-  CheckLatestNeedsUpdate
+  CheckLatestNeedsUpdate,
+  // Settings
+  SelectInstanceDirectory
 } from '../wailsjs/go/app/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
@@ -305,6 +307,46 @@ const App: React.FC = () => {
     setProgress(0);
   };
 
+  const handleCustomDirChange = async () => {
+    try {
+      const selectedDir = await SelectInstanceDirectory();
+      if (selectedDir) {
+        console.log('Instance directory updated to:', selectedDir);
+        
+        // Reload version list and check installed versions for new directory
+        setIsLoadingVersions(true);
+        try {
+          const versions = await GetVersionList(currentBranch);
+          setAvailableVersions(versions || []);
+          
+          const installed = await GetInstalledVersionsForBranch(currentBranch);
+          setInstalledVersions(installed || []);
+          
+          // Re-check if current version is installed in new directory
+          const isInstalled = await IsVersionInstalled(currentBranch, currentVersion);
+          setIsVersionInstalled(isInstalled);
+          
+          // Check if latest needs update
+          if (currentVersion === 0) {
+            const needsUpdate = await CheckLatestNeedsUpdate(currentBranch);
+            setLatestNeedsUpdate(needsUpdate);
+          }
+        } catch (e) {
+          console.error('Failed to reload versions after directory change:', e);
+        }
+        setIsLoadingVersions(false);
+      }
+    } catch (err) {
+      console.error('Failed to change instance directory:', err);
+      setError({
+        type: 'SETTINGS_ERROR',
+        message: 'Failed to change instance directory',
+        technical: err instanceof Error ? err.message : String(err),
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen bg-[#090909] text-white overflow-hidden font-sans select-none">
       <BackgroundImage />
@@ -357,6 +399,7 @@ const App: React.FC = () => {
           latestNeedsUpdate={latestNeedsUpdate}
           onBranchChange={handleBranchChange}
           onVersionChange={handleVersionChange}
+          onCustomDirChange={handleCustomDirChange}
           actions={{
             openFolder: OpenFolder,
             showDelete: () => setShowDelete(true),

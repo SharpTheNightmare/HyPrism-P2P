@@ -2,6 +2,7 @@ package app
 
 import (
 	"HyPrism/internal/config"
+	"HyPrism/internal/env"
 	"HyPrism/internal/pwr"
 )
 
@@ -97,6 +98,7 @@ func (a *App) GetCustomInstanceDir() string {
 // SetCustomInstanceDir sets a custom directory for instances
 func (a *App) SetCustomInstanceDir(path string) error {
 	a.cfg.CustomInstanceDir = path
+	env.SetCustomInstanceDir(path) // Update the env module
 	return config.Save(a.cfg)
 }
 

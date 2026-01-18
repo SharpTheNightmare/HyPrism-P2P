@@ -21,8 +21,7 @@ interface ControlSectionProps {
   isCheckingInstalled?: boolean;
   onBranchChange: (branch: string) => void;
   onVersionChange: (version: number) => void;
-  customInstanceDir?: string;
-  onCustomDirChange?: (dir: string) => void;
+  onCustomDirChange?: () => void;
   actions: {
     openFolder: () => void;
     showDelete: () => void;
@@ -72,7 +71,6 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
   isCheckingInstalled,
   onBranchChange,
   onVersionChange,
-  customInstanceDir,
   onCustomDirChange,
   actions
 }) => {
@@ -250,14 +248,11 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
         <NavBtn 
           onClick={() => {
             if (onCustomDirChange) {
-              const newDir = prompt('Enter custom instances directory path (leave empty for default):');
-              if (newDir !== null) {
-                onCustomDirChange(newDir);
-              }
+              onCustomDirChange();
             }
           }} 
           icon={<HardDrive size={20} />} 
-          tooltip="Default Location" 
+          tooltip="Change Instance Location" 
         />
         <NavBtn onClick={openGitHub} icon={<Github size={20} />} tooltip="GitHub" />
         <NavBtn onClick={openBugReport} icon={<Bug size={20} />} tooltip="Report Bug" />

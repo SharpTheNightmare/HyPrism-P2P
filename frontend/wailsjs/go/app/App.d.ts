@@ -108,6 +108,8 @@ export function SaveDiagnosticReport():Promise<string>;
 
 export function SearchMods(arg1:string,arg2:number,arg3:number):Promise<mods.SearchResult>;
 
+export function SelectInstanceDirectory():Promise<string>;
+
 export function SetAutoUpdateLatest(arg1:boolean):Promise<void>;
 
 export function SetCustomInstanceDir(arg1:string):Promise<void>;
