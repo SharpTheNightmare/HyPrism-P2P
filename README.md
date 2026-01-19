@@ -17,10 +17,32 @@ A multiplatform Hytale launcher with mod manager and more!
 **Antivirus false positives are expected for unsigned binaries.** HyPrism is open source and safe. See [SECURITY.md](SECURITY.md) for detailed explanation of why scanners flag it and what HyPrism actually does.
 
 ## Installation
-Downloads are available in releases
+
+### Windows
+Download `HyPrism-windows-amd64.exe` from [releases](https://github.com/yyyumeniku/HyPrism/releases)
+
+### macOS
+Download `HyPrism.app.zip`, extract and run the app
+
+### Linux
+
+**Recommended:** Use **Flatpak** (bundles all dependencies, no setup required)
+```bash
+flatpak install HyPrism.flatpak
+flatpak run dev.hyprism.HyPrism
+```
+
+**Alternative:** AppImage (requires webkit2gtk-4.1)
+- Most modern Linux desktops already have WebKit installed
+- If not, install `webkit2gtk-4.1` via your package manager before running
+
+**Arch Linux:** Use the AUR package (recommended for Arch users)
+```bash
+yay -S hyprism-git  # or: paru -S hyprism-git
+```
+**Note:** DO NOT use the in-app update button with AUR - update only through your AUR helper!
 
 ## Platform Support
-- Windows (fully supported)
-- macOS (ARM64)
-- Linux (Flatpak recommended, AppImage has dependency issues)
-  - For Arch Users use https://aur.archlinux.org/packages/hyprism-git (paru / yay -S hyprism-git). DO NOT USE UPDATE BUTTON IN LAUNCHER! UPDATE ONLY USE AUR REPO!
+- ✅ Windows (fully supported)
+- ✅ macOS (ARM64)
+- ✅ Linux (Flatpak recommended, AppImage for advanced users)

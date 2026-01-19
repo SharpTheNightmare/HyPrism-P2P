@@ -236,22 +236,26 @@ jobs:
             echo "╔══════════════════════════════════════════════════════════════╗"
             echo "║  HyPrism requires WebKit2GTK 4.1                            ║"
             echo "╠══════════════════════════════════════════════════════════════╣"
-            echo "║  Please install it:                                          ║"
+            echo "║  OPTION 1 (Recommended): Use Flatpak                        ║"
+            echo "║  Download HyPrism.flatpak from the same release.            ║"
+            echo "║  It bundles all dependencies - no setup required!           ║"
             echo "║                                                              ║"
+            echo "║  OPTION 2: Install WebKit on your system                    ║"
             echo "║  • Arch:   sudo pacman -S webkit2gtk-4.1                    ║"
             echo "║  • Ubuntu: sudo apt install libwebkit2gtk-4.1-0             ║"
             echo "║  • Fedora: sudo dnf install webkit2gtk4.1                   ║"
-            echo "║  • SteamOS/Deck: Use the Flatpak version instead            ║"
+            echo "║                                                              ║"
+            echo "║  Note: Most Linux desktops already have WebKit installed    ║"
             echo "╚══════════════════════════════════════════════════════════════╝"
             echo ""
             
             # Try to show a GUI dialog
             if command -v zenity &> /dev/null; then
               zenity --error --title="HyPrism - Missing Dependency" \
-                --text="WebKit2GTK 4.1 is required but not installed.\n\nInstall it:\n• Arch: sudo pacman -S webkit2gtk-4.1\n• Ubuntu: sudo apt install libwebkit2gtk-4.1-0\n• Fedora: sudo dnf install webkit2gtk4.1\n\nOr use the Flatpak version." \
-                --width=450 2>/dev/null
+                --text="WebKit2GTK 4.1 is required but not installed.\n\n<b>OPTION 1 (Recommended):</b> Use Flatpak\nDownload HyPrism.flatpak from the same release.\nIt bundles everything - no setup needed!\n\n<b>OPTION 2:</b> Install WebKit:\n• Arch: sudo pacman -S webkit2gtk-4.1\n• Ubuntu: sudo apt install libwebkit2gtk-4.1-0\n• Fedora: sudo dnf install webkit2gtk4.1" \
+                --width=500 2>/dev/null
             elif command -v kdialog &> /dev/null; then
-              kdialog --error "WebKit2GTK 4.1 is required but not installed.\n\nInstall it:\n• Arch: sudo pacman -S webkit2gtk-4.1\n• Ubuntu: sudo apt install libwebkit2gtk-4.1-0\n\nOr use the Flatpak version." \
+              kdialog --error "WebKit2GTK 4.1 is required but not installed.\n\nOPTION 1 (Recommended): Use Flatpak\nDownload HyPrism.flatpak - bundles everything!\n\nOPTION 2: Install WebKit:\n• Arch: sudo pacman -S webkit2gtk-4.1\n• Ubuntu: sudo apt install libwebkit2gtk-4.1-0" \
                 --title "HyPrism - Missing Dependency" 2>/dev/null
             fi
             
