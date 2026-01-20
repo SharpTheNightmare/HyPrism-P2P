@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderOpen, Play, Package, Square, Github, Bug, GitBranch, Loader2, Download, ChevronDown, HardDrive, Check, Coffee } from 'lucide-react';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { GameBranch } from '../constants/enums';
+import { LanguageSelector } from './LanguageSelector';
 
 interface ControlSectionProps {
   onPlay: () => void;
@@ -79,6 +82,9 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
   const branchDropdownRef = useRef<HTMLDivElement>(null);
   const versionDropdownRef = useRef<HTMLDivElement>(null);
 
+
+  const { t } = useTranslation();
+
   const openGitHub = () => BrowserOpenURL('https://github.com/yyyumeniku/HyPrism');
   const openBugReport = () => BrowserOpenURL('https://github.com/yyyumeniku/HyPrism/issues/new');
   const openCoffee = () => BrowserOpenURL('https://buymeacoffee.com/yyyumeniku');
@@ -88,6 +94,9 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (branchDropdownRef.current && !branchDropdownRef.current.contains(e.target as Node)) {
         setIsBranchOpen(false);
+      }
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target as Node)) {
+        setIsVersionOpen(false);
       }
       if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target as Node)) {
         setIsVersionOpen(false);
@@ -119,7 +128,7 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
     setIsVersionOpen(false);
   };
 
-  const branchLabel = currentBranch === 'release' ? 'Release' : 'Pre-Release';
+  const branchLabel = currentBranch === GameBranch.RELEASE ? t('Release') : t('Pre-Release');
 
   // Calculate width to fit content properly
   const selectorWidth = 'w-[290px]';
@@ -144,12 +153,12 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               active:scale-95 transition-all duration-150 rounded-l-xl
               ${isBranchOpen ? 'text-white bg-white/10' : ''}
             `}
-            title="Select Branch"
+            title={t('Select Branch')}
           >
             <GitBranch size={16} className="text-white/80" />
             <span className="text-sm font-medium">{branchLabel}</span>
-            <ChevronDown 
-              size={12} 
+            <ChevronDown
+              size={12}
               className={`text-white/40 transition-transform duration-150 ${isBranchOpen ? 'rotate-180' : ''}`}
             />
           </button>
@@ -157,18 +166,17 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
           {/* Branch Dropdown Menu (opens up) */}
           {isBranchOpen && (
             <div className="absolute bottom-full left-0 mb-2 z-[100] min-w-[140px] bg-[#1a1a1a] backdrop-blur-xl border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden">
-              {['release', 'pre-release'].map((branch) => (
+              {[GameBranch.RELEASE, GameBranch.PRE_RELEASE].map((branch) => (
                 <button
                   key={branch}
                   onClick={() => handleBranchSelect(branch)}
-                  className={`w-full px-3 py-2 flex items-center gap-2 text-sm ${
-                    currentBranch === branch 
-                      ? 'bg-white/20 text-white' 
+                  className={`w-full px-3 py-2 flex items-center gap-2 text-sm ${currentBranch === branch
+                      ? 'bg-white/20 text-white'
                       : 'text-white/70 hover:bg-white/10 hover:text-white'
-                  }`}
+                    }`}
                 >
                   {currentBranch === branch && <Check size={14} className="text-white" strokeWidth={3} />}
-                  <span className={currentBranch === branch ? '' : 'ml-[22px]'}>{branch === 'release' ? 'Release' : 'Pre-Release'}</span>
+                  <span className={currentBranch === branch ? '' : 'ml-[22px]'}>{branch === GameBranch.RELEASE ? t('Release') : t('Pre-Release')}</span>
                 </button>
               ))}
             </div>
@@ -191,13 +199,13 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               active:scale-95 transition-all duration-150 rounded-r-xl
               ${isVersionOpen ? 'text-[#FFA845] bg-[#FFA845]/10' : ''}
             `}
-            title="Select Version"
+            title={t('Select Version')}
           >
             <span className="text-sm font-medium">
-              {isLoadingVersions ? '...' : currentVersion === 0 ? 'latest' : `v${currentVersion}`}
+              {isLoadingVersions ? '...' : currentVersion === 0 ? t('latest') : `v${currentVersion}`}
             </span>
-            <ChevronDown 
-              size={12} 
+            <ChevronDown
+              size={12}
               className={`text-white/40 transition-transform duration-150 ${isVersionOpen ? 'rotate-180' : ''}`}
             />
           </button>
@@ -212,30 +220,29 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
                     <button
                       key={version}
                       onClick={() => handleVersionSelect(version)}
-                      className={`w-full px-3 py-2 flex items-center justify-between gap-2 text-sm ${
-                        currentVersion === version 
-                          ? 'bg-[#FFA845]/20 text-[#FFA845]' 
+                      className={`w-full px-3 py-2 flex items-center justify-between gap-2 text-sm ${currentVersion === version
+                          ? 'bg-[#FFA845]/20 text-[#FFA845]'
                           : 'text-white/70 hover:bg-white/10 hover:text-white'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         {currentVersion === version && (
                           <Check size={14} className="text-[#FFA845]" strokeWidth={3} />
                         )}
                         <span className={currentVersion === version ? '' : 'ml-[22px]'}>
-                          {version === 0 ? 'latest' : `v${version}`}
+                          {version === 0 ? t('latest') : `v${version}`}
                         </span>
                       </div>
                       {isInstalled && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 font-medium">
-                          {version === 0 ? 'latest' : '✓'}
+                          {version === 0 ? t('latest') : '✓'}
                         </span>
                       )}
                     </button>
                   );
                 })
               ) : (
-                <div className="px-3 py-2 text-sm text-white/40">No versions</div>
+                <div className="px-3 py-2 text-sm text-white/40">{t('No versions')}</div>
               )}
             </div>
           )}
@@ -244,32 +251,36 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
 
       {/* Row 2: Nav buttons */}
       <div className="flex gap-3 items-center">
-        <NavBtn onClick={actions.showModManager} icon={<Package size={20} />} tooltip="Mod Manager" />
-        <NavBtn onClick={actions.openFolder} icon={<FolderOpen size={20} />} tooltip="Open Instance Folder" />
-        <NavBtn 
+        <NavBtn onClick={actions.showModManager} icon={<Package size={20} />} tooltip={t('Mod Manager')} />
+        <NavBtn onClick={actions.openFolder} icon={<FolderOpen size={20} />} tooltip={t('Open Instance Folder')} />
+        <NavBtn
           onClick={() => {
             if (onCustomDirChange) {
               onCustomDirChange();
             }
-          }} 
-          icon={<HardDrive size={20} />} 
-          tooltip="Change Instance Location" 
+          }}
+          icon={<HardDrive size={20} />}
+          tooltip={t('Change Instance Location')}
         />
         <NavBtn onClick={openGitHub} icon={<Github size={20} />} tooltip="GitHub" />
-        <NavBtn onClick={openBugReport} icon={<Bug size={20} />} tooltip="Report Bug" />
+
+        <NavBtn onClick={openBugReport} icon={<Bug size={20} />} tooltip={t('Report Bug')} />
+
+        <LanguageSelector />
+
         <button
           onClick={openCoffee}
           className="h-12 px-4 rounded-xl glass border border-white/5 flex items-center justify-center gap-2 text-white/60 hover:text-[#FFA845] hover:bg-[#FFA845]/10 active:scale-95 transition-all duration-150"
-          title="Buy Me a Coffee"
+          title={t('Buy Me a Coffee')}
         >
-          <span className="text-sm font-medium">Buy me a</span>
+          <span className="text-sm font-medium">{t('Buy me a')}</span>
           <Coffee size={20} />
         </button>
-        
+
         {/* Spacer + Disclaimer in center */}
         <div className="flex-1 flex justify-center">
           <p className="text-white/40 text-xs whitespace-nowrap">
-            Educational only. Like it? <button onClick={() => BrowserOpenURL('https://hytale.com')} className="text-[#FFA845] font-semibold hover:underline cursor-pointer">BUY IT</button>
+            {t('Educational only.')} {t('Like it?')} <button onClick={() => BrowserOpenURL('https://hytale.com')} className="text-[#FFA845] font-semibold hover:underline cursor-pointer">{t('BUY IT')}</button>
           </p>
         </div>
 
@@ -281,11 +292,11 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               className="h-12 px-8 rounded-xl font-black text-xl tracking-tight flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-lg hover:shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
               <Square size={20} fill="currentColor" />
-              <span>EXIT</span>
+              <span>{t('EXIT')}</span>
             </button>
           ) : isDownloading ? (
             <div className="h-12 px-6 rounded-xl bg-[#151515] border border-white/10 flex items-center justify-center gap-4 relative overflow-hidden min-w-[200px]">
-              <div 
+              <div
                 className="absolute inset-0 bg-gradient-to-r from-[#FFA845]/30 to-[#FF6B35]/30 transition-all duration-300"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               />
@@ -304,7 +315,7 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               className="h-12 px-8 rounded-xl font-black text-xl tracking-tight flex items-center justify-center gap-2 bg-white/10 text-white/50 cursor-not-allowed"
             >
               <Loader2 size={20} className="animate-spin" />
-              <span>CHECKING...</span>
+              <span>{t('CHECKING...')}</span>
             </button>
           ) : latestNeedsUpdate && currentVersion === 0 ? (
             <button
@@ -312,7 +323,7 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               className="h-12 px-8 rounded-xl font-black text-xl tracking-tight flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
               <Download size={20} />
-              <span>UPDATE</span>
+              <span>{t('UPDATE')}</span>
             </button>
           ) : isVersionInstalled ? (
             <button
@@ -320,7 +331,7 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               className="h-12 px-8 rounded-xl font-black text-xl tracking-tight flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFA845] to-[#FF6B35] text-white hover:shadow-lg hover:shadow-[#FFA845]/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
               <Play size={20} fill="currentColor" />
-              <span>PLAY</span>
+              <span>{t('PLAY')}</span>
             </button>
           ) : (
             <button
@@ -328,7 +339,7 @@ export const ControlSection: React.FC<ControlSectionProps> = ({
               className="h-12 px-8 rounded-xl font-black text-xl tracking-tight flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 cursor-pointer"
             >
               <Download size={20} />
-              <span>DOWNLOAD</span>
+              <span>{t('DOWNLOAD')}</span>
             </button>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { Calendar, RefreshCw, User } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 interface NewsItem {
@@ -16,6 +17,7 @@ interface NewsPreviewProps {
 }
 
 export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
+    const { t } = useTranslation();
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
         <div className='flex flex-col gap-y-2 max-w-sm'>
             <div className='flex justify-between items-center'>
                 <h2 className='text-white text-base font-bold'>
-                    Latest Hytale News
+                    {t('Latest Hytale News')}
                 </h2>
                 <button
                     onClick={fetchNews}
@@ -59,7 +61,7 @@ export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
                 (<div className="flex items-center justify-center py-4">
                     <div className="text-center">
                         <RefreshCw size={24} className="text-[#FFA845] animate-spin mx-auto mb-2" />
-                        <p className="text-white/70 text-xs">Loading news...</p>
+                        <p className="text-white/70 text-xs">{t('Loading news...')}</p>
                     </div>
                 </div>)
                 : error ? (
@@ -70,7 +72,7 @@ export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
                                 onClick={fetchNews}
                                 className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
                             >
-                                Try Again
+                                {t('Try Again')}
                             </button>
                         </div>
                     </div>
@@ -86,8 +88,8 @@ export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
                                 >
                                     {/* News Image */}
                                     {item.imageUrl && (
-                                        <img 
-                                            src={item.imageUrl} 
+                                        <img
+                                            src={item.imageUrl}
                                             alt={item.title}
                                             className='w-20 h-14 object-cover rounded-md flex-shrink-0 group-hover:scale-105 transition-transform'
                                         />
@@ -111,10 +113,10 @@ export const NewsPreview: React.FC<NewsPreviewProps> = ({ getNews }) => {
                                 </button>
                             )
                         })}
-                        <button 
-                            onClick={() => openLink("https://hytale.com/news")} 
+                        <button
+                            onClick={() => openLink("https://hytale.com/news")}
                             className='w-full font-semibold hover:underline cursor-pointer text-[#FFA845] text-xs mt-0.5'>
-                            Read more on hytale.com →
+                            {t('Read more on hytale.com')} →
                         </button>
                     </div>)
             }

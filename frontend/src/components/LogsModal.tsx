@@ -6,11 +6,13 @@ interface LogsModalProps {
   onClose: () => void;
   getGameLogs: () => Promise<string>;
 }
+import { useTranslation } from 'react-i18next';
 
 export const LogsModal: React.FC<LogsModalProps> = ({
   onClose,
   getGameLogs
 }) => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -22,7 +24,7 @@ export const LogsModal: React.FC<LogsModalProps> = ({
       const content = await getGameLogs();
       setLogs(content);
       setIsLoading(false);
-      
+
       // Auto-scroll to bottom only if user is already at bottom
       setTimeout(() => {
         if (logsRef.current && shouldScrollRef.current) {
@@ -30,7 +32,7 @@ export const LogsModal: React.FC<LogsModalProps> = ({
         }
       }, 50);
     } catch (err) {
-      setLogs('Failed to load logs: ' + (err instanceof Error ? err.message : String(err)));
+      setLogs(t('Failed to load logs: ') + (err instanceof Error ? err.message : String(err)));
       setIsLoading(false);
     }
   };
@@ -94,8 +96,8 @@ export const LogsModal: React.FC<LogsModalProps> = ({
               <Terminal size={20} className="text-[#FFA845]" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Game Logs</h2>
-              <p className="text-xs text-gray-400">View game output and errors</p>
+              <h2 className="text-lg font-bold text-white">{t('Game Logs')}</h2>
+              <p className="text-xs text-gray-400">{t('View game output and errors')}</p>
             </div>
           </div>
           <button
@@ -111,7 +113,7 @@ export const LogsModal: React.FC<LogsModalProps> = ({
           {isLoading && !logs ? (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 size={32} className="text-[#FFA845] animate-spin mb-4" />
-              <p className="text-gray-400">Loading logs...</p>
+              <p className="text-gray-400">{t('Loading logs...')}</p>
             </div>
           ) : (
             <pre
@@ -120,7 +122,7 @@ export const LogsModal: React.FC<LogsModalProps> = ({
               className="w-full h-full overflow-auto bg-black/50 rounded-xl p-4 text-xs font-mono text-gray-300 whitespace-pre-wrap"
               style={{ tabSize: 4 }}
             >
-              {logs || 'No logs available yet. Run the game to generate logs.'}
+              {logs || t('No logs available yet. Run the game to generate logs.')}
             </pre>
           )}
         </div>
@@ -129,29 +131,29 @@ export const LogsModal: React.FC<LogsModalProps> = ({
         <div className="flex items-center justify-between p-5 border-t border-white/10 bg-black/30 flex-shrink-0">
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Auto-refreshing every 2 seconds
+            {t('Auto-refreshing every 2 seconds')}
           </div>
-          
+
           <div className="flex gap-3">
             <button
               onClick={copyLogs}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors"
             >
               {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? t('Copied!') : t('Copy')}
             </button>
             <button
               onClick={downloadLogs}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors"
             >
               <Download size={14} />
-              Download
+              {t('Download')}
             </button>
             <button
               onClick={onClose}
               className="px-6 py-2 rounded-lg bg-[#FFA845]/20 text-[#FFA845] hover:bg-[#FFA845]/30 transition-colors font-medium"
             >
-              Close
+              {t('Close')}
             </button>
           </div>
         </div>

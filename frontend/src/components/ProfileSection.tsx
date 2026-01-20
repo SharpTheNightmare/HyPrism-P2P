@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Edit3, Check, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ProfileSectionProps {
   username: string;
@@ -21,6 +22,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onUpdate,
   launcherVersion
 }) => {
+  const { t } = useTranslation();
   const [editValue, setEditValue] = React.useState(username);
 
   React.useEffect(() => {
@@ -44,7 +46,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col gap-2"
@@ -79,6 +81,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               whileTap={{ scale: 0.9 }}
               onClick={() => onEditToggle(true)}
               className="p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5"
+              title={t('Edit Profile')}
             >
               <Edit3 size={14} />
             </motion.button>
@@ -95,10 +98,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           className="flex items-center gap-1 text-xs text-[#FFA845] hover:text-[#FFB85F] transition-colors mt-1"
         >
           <Download size={12} />
-          Update Available
+          {t('Update Available')}
         </motion.button>
       )}
-      
+
       {/* Launcher version */}
       <div className="text-xs text-white/30 mt-1">
         HyPrism {launcherVersion}
