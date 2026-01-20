@@ -1,6 +1,7 @@
 export enum Language {
     ENGLISH = 'en',
     RUSSIAN = 'ru',
+    FRENCH = 'fr',
 }
 
 export enum GameBranch {

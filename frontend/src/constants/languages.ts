@@ -17,4 +17,9 @@ export const LANGUAGE_CONFIG: Record<Language, LanguageMetadata> = {
         nativeName: 'Русский',
         code: Language.RUSSIAN,
     },
+    [Language.FRENCH]: {
+        name: 'French',
+        nativeName: 'Français',
+        code: Language.FRENCH,
+    },
 };
