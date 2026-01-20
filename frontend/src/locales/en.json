@@ -115,5 +115,7 @@
     "Auto-refreshing every 2 seconds": "Auto-refreshing every 2 seconds",
     "Copy": "Copy",
     "Download": "Download",
-    "Failed to load logs: ": "Failed to load logs: "
+    "Failed to load logs: ": "Failed to load logs: ",
+    "Failed to update launcher": "Failed to update launcher",
+    "Failed to change instance directory": "Failed to change instance directory"
 }

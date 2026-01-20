@@ -115,5 +115,7 @@
     "No logs available yet. Run the game to generate logs.": "Логов пока нет. Запустите игру для их генерации.",
     "Auto-refreshing every 2 seconds": "Автообновление каждые 2 сек",
     "Copy": "Копировать",
-    "Failed to load logs: ": "Ошибка загрузки логов: "
+    "Failed to load logs: ": "Ошибка загрузки логов: ",
+    "Failed to update launcher": "Не удалось обновить лаунчер",
+    "Failed to change instance directory": "Не удалось изменить папку инстанса"
 }

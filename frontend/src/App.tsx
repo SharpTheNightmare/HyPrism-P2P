@@ -296,7 +296,7 @@ const App: React.FC = () => {
       console.error('Update failed:', err);
       setError({
         type: 'UPDATE_ERROR',
-        message: 'Failed to update launcher',
+        message: t('Failed to update launcher'),
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });
@@ -353,7 +353,7 @@ const App: React.FC = () => {
         setError({
           type: 'INFO',
           message: t('Instance Directory Updated'),
-          technical: t('instance_dir_updated_detail', { dir: selectedDir }),
+          technical: t('Game instances will now be stored in:\n{{dir}}\n\nNote: The following remain in AppData:\n• Java Runtime (JRE)\n• Butler tool\n• Cache files\n• Logs\n• Launcher settings\n• WebView2 (EBWebView folder)\n\nYou may need to reinstall the game if switching drives.', { dir: selectedDir }),
           timestamp: new Date().toISOString()
         });
 
@@ -384,7 +384,7 @@ const App: React.FC = () => {
       console.error('Failed to change instance directory:', err);
       setError({
         type: 'SETTINGS_ERROR',
-        message: 'Failed to change instance directory',
+        message: t('Failed to change instance directory'),
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });
@@ -400,8 +400,6 @@ const App: React.FC = () => {
       <div className="absolute top-12 right-4 z-20">
         <MusicPlayer forceMuted={isGameRunning} />
       </div>
-
-
 
       {isUpdatingLauncher && (
         <UpdateOverlay
