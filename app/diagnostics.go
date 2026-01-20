@@ -123,13 +123,13 @@ func checkDependencies() DependenciesInfo {
 func (a *App) SaveDiagnosticReport() (string, error) {
 	report := a.RunDiagnostics()
 	
-	appDir := env.GetDefaultAppDir()
-	if err := os.MkdirAll(appDir, 0755); err != nil {
+	logsDir := filepath.Join(env.GetDefaultAppDir(), "logs")
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		return "", err
 	}
 
-	filename := fmt.Sprintf("diagnostic_%s.txt", time.Now().Format("2006-01-02_15-04-05"))
-	filepath := filepath.Join(appDir, filename)
+	filename := fmt.Sprintf("hyprism_diagnostic_%s.txt", time.Now().Format("2006-01-02_15-04-05"))
+	filepath := filepath.Join(logsDir, filename)
 
 	content := fmt.Sprintf(`HyPrism Diagnostic Report
 Generated: %s
