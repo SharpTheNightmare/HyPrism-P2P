@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, X, Copy, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ErrorModalProps {
   error: {
@@ -13,6 +14,7 @@ interface ErrorModalProps {
 }
 
 export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
 
   const copyError = () => {
@@ -55,7 +57,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
               <AlertTriangle size={20} className="text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Error Occurred</h2>
+              <h2 className="text-lg font-bold text-white">{t('Error Occurred')}</h2>
               <span className={`text-xs font-medium ${getErrorColor(error.type)}`}>
                 {error.type}
               </span>
@@ -84,7 +86,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
 
           {error.timestamp && (
             <p className="text-xs text-gray-500">
-              Occurred at: {new Date(error.timestamp).toLocaleString()}
+              {t('Occurred at:')} {new Date(error.timestamp).toLocaleString()}
             </p>
           )}
         </div>
@@ -96,22 +98,22 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
           >
             <Copy size={14} />
-            {copied ? 'Copied!' : 'Copy Error'}
+            {copied ? t('Copied!') : t('Copy Error')}
           </button>
-          
+
           <div className="flex gap-3">
             <button
               onClick={() => window.location.reload()}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
             >
               <RefreshCw size={14} />
-              Reload
+              {t('Reload')}
             </button>
             <button
               onClick={onClose}
               className="px-6 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium text-sm"
             >
-              Dismiss
+              {t('Dismiss')}
             </button>
           </div>
         </div>

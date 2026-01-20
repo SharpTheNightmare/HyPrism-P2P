@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { GameBranch } from './constants/enums';
 import { Titlebar } from './components/Titlebar';
 import { BackgroundImage } from './components/BackgroundImage';
 import { ProfileSection } from './components/ProfileSection';
@@ -36,6 +38,7 @@ import { EventsOn } from '../wailsjs/runtime/runtime';
 import { NewsPreview } from './components/NewsPreview';
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   // User state
   const [username, setUsername] = useState<string>("HyPrism");
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -59,7 +62,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<any>(null);
 
   // Version state
-  const [currentBranch, setCurrentBranch] = useState<string>("release");
+  const [currentBranch, setCurrentBranch] = useState<string>(GameBranch.RELEASE);
   const [currentVersion, setCurrentVersion] = useState<number>(0);
   const [availableVersions, setAvailableVersions] = useState<number[]>([]);
   const [installedVersions, setInstalledVersions] = useState<number[]>([]);
@@ -193,7 +196,7 @@ const App: React.FC = () => {
       try {
         // Get saved branch (defaults to "release" in backend if not set)
         const savedBranch = await GetVersionType();
-        const branch = savedBranch || "release";
+        const branch = savedBranch || GameBranch.RELEASE;
         setCurrentBranch(branch);
 
         // Load version list for this branch
@@ -207,7 +210,7 @@ const App: React.FC = () => {
 
         // Check if "latest" (version 0) is installed first
         const latestInstalled = await IsVersionInstalled(branch, 0);
-        
+
         if (latestInstalled) {
           // Use latest if installed
           setCurrentVersion(0);
@@ -232,7 +235,7 @@ const App: React.FC = () => {
           await SetSelectedVersion(0);
           setIsVersionInstalled(false);
         }
-        
+
         setIsLoadingVersions(false);
       } catch (e) {
         console.error('Failed to load settings:', e);
@@ -293,7 +296,7 @@ const App: React.FC = () => {
       console.error('Update failed:', err);
       setError({
         type: 'UPDATE_ERROR',
-        message: 'Failed to update launcher',
+        message: t('Failed to update launcher'),
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });
@@ -305,8 +308,8 @@ const App: React.FC = () => {
     if (!username.trim() || username.length > 16) {
       setError({
         type: 'VALIDATION',
-        message: 'Invalid Nickname',
-        technical: 'Nickname must be between 1 and 16 characters',
+        message: t('Invalid Nickname'),
+        technical: t('Nickname must be between 1 and 16 characters'),
         timestamp: new Date().toISOString()
       });
       return;
@@ -349,8 +352,8 @@ const App: React.FC = () => {
         // Show info about what gets moved
         setError({
           type: 'INFO',
-          message: 'Instance Directory Updated',
-          technical: `Game instances will now be stored in:\n${selectedDir}\n\nNote: The following remain in AppData:\n• Java Runtime (JRE)\n• Butler tool\n• Cache files\n• Logs\n• Launcher settings\n• WebView2 (EBWebView folder)\n\nYou may need to reinstall the game if switching drives.`,
+          message: t('Instance Directory Updated'),
+          technical: t('Game instances will now be stored in:\n{{dir}}\n\nNote: The following remain in AppData:\n• Java Runtime (JRE)\n• Butler tool\n• Cache files\n• Logs\n• Launcher settings\n• WebView2 (EBWebView folder)\n\nYou may need to reinstall the game if switching drives.', { dir: selectedDir }),
           timestamp: new Date().toISOString()
         });
 
@@ -381,7 +384,7 @@ const App: React.FC = () => {
       console.error('Failed to change instance directory:', err);
       setError({
         type: 'SETTINGS_ERROR',
-        message: 'Failed to change instance directory',
+        message: t('Failed to change instance directory'),
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });

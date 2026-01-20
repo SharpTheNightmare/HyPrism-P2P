@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { GetMusicEnabled, SetMusicEnabled } from '../../wailsjs/go/app/App';
 
 // Import all music tracks
@@ -25,6 +26,7 @@ interface MusicPlayerProps {
 }
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceMuted = false }) => {
+  const { t } = useTranslation();
   // Start with music disabled until we load the saved preference
   const [isMuted, setIsMuted] = useState(true);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -59,7 +61,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
   // Handle forceMuted prop with smooth fade
   useEffect(() => {
     if (!audioRef.current) return;
-    
+
     // Clear any existing fade
     if (fadeIntervalRef.current) {
       clearInterval(fadeIntervalRef.current);
@@ -94,14 +96,14 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
       setIsFading(true);
       const targetVolume = targetVolumeRef.current;
       audioRef.current.volume = 0;
-      
+
       // Resume playback
       audioRef.current.play().catch(err => {
         console.log('Failed to resume audio:', err);
         setIsFading(false);
         return;
       });
-      
+
       const steps = 20;
       const stepTime = 1000 / steps;
       const volumeStep = targetVolume / steps;
@@ -138,7 +140,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
     const audio = audioRef.current;
     audio.volume = 0.3; // 30% volume
     audio.muted = isMuted; // Apply initial mute state from config
-    
+
     // Only auto-play if music is enabled (not muted)
     if (!isMuted) {
       const playAudio = async () => {
@@ -147,7 +149,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
         } catch (err) {
           // Auto-play was prevented, user needs to interact first
           console.log('Auto-play blocked, waiting for user interaction');
-          
+
           const handleUserInteraction = async () => {
             try {
               await audio.play();
@@ -157,7 +159,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
               // Still blocked
             }
           };
-          
+
           document.addEventListener('click', handleUserInteraction);
           document.addEventListener('keydown', handleUserInteraction);
         }
@@ -207,7 +209,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ className = '', forceM
         onClick={toggleMute}
         disabled={forceMuted}
         className={`p-2 rounded-lg hover:bg-white/10 transition-colors ${forceMuted ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
-        title={forceMuted ? 'Music muted while game is running' : isMuted ? 'Unmute' : 'Mute'}
+        title={forceMuted ? t('Music muted while game is running') : isMuted ? t('Unmute') : t('Mute')}
       >
         {forceMuted ? (
           <VolumeX size={20} className="text-gray-500" />
