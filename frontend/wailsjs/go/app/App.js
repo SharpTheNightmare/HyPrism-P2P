@@ -70,10 +70,6 @@ export function GetNews(arg1) {
   return window['go']['app']['App']['GetNews'](arg1);
 }
 
-export function GetNick() {
-  return window['go']['app']['App']['GetNick']();
-}
-
 export function GetPlatformInfo() {
   return window['go']['app']['App']['GetPlatformInfo']();
 }
@@ -164,10 +160,6 @@ export function SelectInstanceDirectory() {
 
 export function SetMusicEnabled(arg1) {
   return window['go']['app']['App']['SetMusicEnabled'](arg1);
-}
-
-export function SetNick(arg1) {
-  return window['go']['app']['App']['SetNick'](arg1);
 }
 
 export function ToggleInstanceMod(arg1, arg2, arg3, arg4) {

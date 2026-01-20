@@ -128,13 +128,8 @@ export namespace config {
 	
 	export class Config {
 	    version: string;
-	    nick: string;
 	    musicEnabled: boolean;
-	    versionType: string;
-	    selectedVersion: number;
-	    customInstanceDir: string;
 	    gameInstallPath: string;
-	    autoUpdateLatest: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -143,13 +138,8 @@ export namespace config {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.version = source["version"];
-	        this.nick = source["nick"];
 	        this.musicEnabled = source["musicEnabled"];
-	        this.versionType = source["versionType"];
-	        this.selectedVersion = source["selectedVersion"];
-	        this.customInstanceDir = source["customInstanceDir"];
 	        this.gameInstallPath = source["gameInstallPath"];
-	        this.autoUpdateLatest = source["autoUpdateLatest"];
 	    }
 	}
 

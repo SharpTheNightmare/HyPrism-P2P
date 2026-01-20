@@ -40,8 +40,6 @@ export function GetMusicEnabled():Promise<boolean>;
 
 export function GetNews(arg1:number):Promise<Array<news.NewsItem>>;
 
-export function GetNick():Promise<string>;
-
 export function GetPlatformInfo():Promise<Record<string, string>>;
 
 export function GetUserProfile():Promise<Record<string, string>>;
@@ -87,8 +85,6 @@ export function SelectGameInstallDirectory():Promise<string>;
 export function SelectInstanceDirectory():Promise<string>;
 
 export function SetMusicEnabled(arg1:boolean):Promise<void>;
-
-export function SetNick(arg1:string):Promise<void>;
 
 export function ToggleInstanceMod(arg1:string,arg2:boolean,arg3:string,arg4:number):Promise<void>;
 

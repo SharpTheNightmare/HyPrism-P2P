@@ -4,17 +4,6 @@ import (
 	"HyPrism/internal/config"
 )
 
-// SetNick sets the player nickname
-func (a *App) SetNick(nick string) error {
-	a.cfg.Nick = nick
-	return config.Save(a.cfg)
-}
-
-// GetNick returns the player nickname
-func (a *App) GetNick() string {
-	return a.cfg.Nick
-}
-
 // GetConfig returns the full config
 func (a *App) GetConfig() *config.Config {
 	return a.cfg

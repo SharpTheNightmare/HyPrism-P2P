@@ -98,27 +98,8 @@ func (a *App) SelectInstanceDirectory() (string, error) {
 		return "", nil
 	}
 	
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(selectedDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create directory: %w\n\nPlease ensure:\n• The drive is properly connected\n• You have write permissions\n• The path is valid", err)
-	}
-	
-	// Verify the directory is writable (important for external drives)
-	testFile := filepath.Join(selectedDir, ".hyprism-test")
-	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
-		return "", fmt.Errorf("directory is not writable: %w\n\nPlease check:\n• Drive is not read-only\n• You have write permissions\n• Drive has free space", err)
-	}
-	os.Remove(testFile)
-	
-	// Save to config
-	a.cfg.CustomInstanceDir = selectedDir
-	if err := config.Save(a.cfg); err != nil {
-		return "", fmt.Errorf("failed to save config: %w", err)
-	}
-	
-	
-	fmt.Printf("Instance directory updated to: %s\n", selectedDir)
-	return selectedDir, nil
+	// This function is no longer used since we use the official Hytale installation
+	return "", fmt.Errorf("custom instance directories are not supported - use official Hytale installation")
 }
 
 // SelectGameInstallDirectory opens a folder picker to select official Hytale installation
@@ -400,13 +381,9 @@ func (a *App) OpenGameFolder() error {
 	return openFolder(gameDir)
 }
 
-// QuickLaunch launches the game with saved nickname
+// QuickLaunch launches the game
 func (a *App) QuickLaunch() error {
-	nick := a.cfg.Nick
-	if nick == "" {
-		nick = "Player"
-	}
-	return a.Launch(nick)
+	return a.Launch("Player")
 }
 
 // ExitGame terminates the running game process
@@ -450,12 +427,6 @@ func (a *App) LoginWithHytaleAccount() error {
 	// Save session
 	if err := auth.SaveSession(session); err != nil {
 		return fmt.Errorf("failed to save session: %w", err)
-	}
-	
-	// Update config with authenticated username
-	a.cfg.Nick = session.Username
-	if err := config.Save(a.cfg); err != nil {
-		fmt.Printf("Warning: failed to save username to config: %v\n", err)
 	}
 	
 	wailsRuntime.EventsEmit(a.ctx, "auth-success", map[string]string{

@@ -12,8 +12,6 @@ import hytaleLogo from './assets/logo.png';
 
 import {
   Launch,
-  GetNick,
-  SetNick,
   Update,
   ExitGame,
   IsGameRunning,
@@ -33,7 +31,6 @@ import { NewsPreview } from './components/NewsPreview';
 const App: React.FC = () => {
   // User state
   const [username, setUsername] = useState<string>("HyPrism");
-  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [launcherVersion, setLauncherVersion] = useState<string>("dev");
 
   // Game state
@@ -92,10 +89,7 @@ const App: React.FC = () => {
     };
     checkAuth();
 
-    // Initialize user settings
-    GetNick().then((n: string) => {
-      if (!isLoggedIn && n) setUsername(n);
-    });
+    // Initialize launcher version
     GetLauncherVersion().then((v: string) => setLauncherVersion(v));
 
     // Event listeners
@@ -195,12 +189,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleNickChange = async (newNick: string) => {
-    setUsername(newNick);
-    await SetNick(newNick);
-  };
-
-
   const handleExit = async () => {
     try {
       await ExitGame();
@@ -299,9 +287,6 @@ const App: React.FC = () => {
         <div className="flex justify-between items-start">
           <ProfileSection
             username={username}
-            isEditing={isEditing}
-            onEditToggle={setIsEditing}
-            onUserChange={handleNickChange}
             updateAvailable={!!updateAsset}
             onUpdate={handleUpdate}
             launcherVersion={launcherVersion}
