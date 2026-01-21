@@ -249,6 +249,21 @@ func LaunchInstanceWithOptions(opts LaunchOptions) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "darwin" {
 		appBundlePath := filepath.Join(gameDir, "Client", "Hytale.app")
+		
+		// CRITICAL for macOS: Remove quarantine and re-sign right before launch
+		// This prevents "app is damaged" errors from Gatekeeper
+		fmt.Println("Preparing macOS app for launch...")
+		exec.Command("xattr", "-cr", appBundlePath).Run()
+		
+		// Re-sign the app bundle with ad-hoc signature
+		signCmd := exec.Command("codesign", "--force", "--deep", "--sign", "-", appBundlePath)
+		if output, err := signCmd.CombinedOutput(); err != nil {
+			fmt.Printf("Warning: Could not sign app before launch: %v\nOutput: %s\n", err, string(output))
+			// Continue anyway - xattr removal might be enough
+		} else {
+			fmt.Println("App signed successfully")
+		}
+		
 		args := append([]string{appBundlePath, "--args"}, commonArgs...)
 		cmd = exec.Command("open", args...)
 	} else if runtime.GOOS == "windows" {
