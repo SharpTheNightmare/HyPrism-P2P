@@ -10,7 +10,7 @@
 
 A multiplatform Hytale launcher with mod manager and more!
 
-<img width="3084" height="1964" alt="Screenshot 2026-01-17 at 22 29 55@2x" src="https://github.com/user-attachments/assets/0a27bc91-d6d5-4148-ae3b-f9e6c36cd6db" />
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/00957b89-2770-443f-b8cd-c25f40ce97de" />
 
 ## Security Notice
 
