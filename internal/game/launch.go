@@ -1,8 +1,6 @@
 package game
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,254 +9,123 @@ import (
 	"strings"
 
 	"HyPrism/internal/auth"
-	"HyPrism/internal/env"
-	"HyPrism/internal/patcher"
 )
 
-// LaunchOptions contains options for launching the game
-type LaunchOptions struct {
-	PlayerName  string
-	Branch      string
-	Version     int
-	OnlineMode  bool   // If true, use online auth mode with patched binaries
-	AuthDomain  string // Custom auth domain (empty for default)
+// LaunchInstance launches using official Hytale installation
+func LaunchInstance(gameInstallPath string) error {
+	// Require authentication - no offline mode
+	session, err := auth.GetValidSession()
+	if err != nil || session == nil {
+		return fmt.Errorf("authentication required: please log in with your Hytale account")
+	}
+	
+	fmt.Printf("Launching with authenticated account: %s (UUID: %s)\n", session.Username, session.UUID)
+	
+	// Use official Hytale installation paths
+	gameDir := filepath.Join(gameInstallPath, "install", "release", "package", "game", "latest")
+	
+// Verify client exists
+var clientPath string
+switch runtime.GOOS {
+case "darwin":
+	clientPath = filepath.Join(gameDir, "Client", "Hytale.app", "Contents", "MacOS", "HytaleClient")
+case "windows":
+	clientPath = filepath.Join(gameDir, "Client", "HytaleClient.exe")
+default:
+	clientPath = filepath.Join(gameDir, "Client", "HytaleClient")
 }
 
-// Legacy Launch() removed - use LaunchInstance() instead
-
-// LaunchInstance launches a specific branch/version instance (offline mode)
-func LaunchInstance(playerName string, branch string, version int) error {
-	return LaunchInstanceWithOptions(LaunchOptions{
-		PlayerName: playerName,
-		Branch:     branch,
-		Version:    version,
-		OnlineMode: false,
-		AuthDomain: "",
-	})
+if _, err := os.Stat(clientPath); err != nil {
+	return fmt.Errorf("game client not found at %s: %w", clientPath, err)
 }
 
-// LaunchInstanceOnline launches a specific branch/version instance with online mode
-func LaunchInstanceOnline(playerName string, branch string, version int, authDomain string) error {
-	return LaunchInstanceWithOptions(LaunchOptions{
-		PlayerName: playerName,
-		Branch:     branch,
-		Version:    version,
-		OnlineMode: true,
-		AuthDomain: authDomain,
-	})
+// UserData under official installation by default
+userDataDir := filepath.Join(gameInstallPath, "UserData")
+_ = os.MkdirAll(userDataDir, 0755)
+
+// Set up Java path from official installation
+var jrePath string
+jreRoot := filepath.Join(gameInstallPath, "install", "release", "package", "jre", "latest")
+
+switch runtime.GOOS {
+case "darwin":
+	jrePath = filepath.Join(jreRoot, "bin", "java")
+case "windows":
+	jrePath = filepath.Join(jreRoot, "bin", "java.exe")
+default:
+	jrePath = filepath.Join(jreRoot, "bin", "java")
 }
 
-// signMacOSBinaries signs Java runtime and other binaries on macOS to avoid Gatekeeper issues
-func signMacOSBinaries(jreDir, jrePath string) {
-	fmt.Println("Signing macOS binaries...")
-	
-	// Remove quarantine attributes
-	xattrCmd := exec.Command("xattr", "-cr", jreDir)
-	xattrCmd.Run()
-	
-	// Sign the Java binary
-	codesignCmd := exec.Command("codesign", "--force", "--deep", "--sign", "-", jreDir)
-	if output, err := codesignCmd.CombinedOutput(); err != nil {
-		fmt.Printf("Warning: Failed to sign JRE: %s\n", string(output))
-	} else {
-		fmt.Println("JRE signed successfully")
-	}
+if _, err := os.Stat(jrePath); err != nil {
+	return fmt.Errorf("Java not found at %s: %w", jrePath, err)
 }
 
-// LaunchInstanceWithOptions launches a specific branch/version instance with given options
-func LaunchInstanceWithOptions(opts LaunchOptions) error {
-	baseDir := env.GetDefaultAppDir()
-	
-	// Get instance-specific game directory
-	gameDir := env.GetInstanceGameDir(opts.Branch, opts.Version)
-	
-	// Verify client exists
-	var clientPath string
-	switch runtime.GOOS {
-	case "darwin":
-		clientPath = filepath.Join(gameDir, "Client", "Hytale.app", "Contents", "MacOS", "HytaleClient")
-	case "windows":
-		clientPath = filepath.Join(gameDir, "Client", "HytaleClient.exe")
-	default:
-		clientPath = filepath.Join(gameDir, "Client", "HytaleClient")
-	}
+fmt.Printf("=== LAUNCH ===\n")
+fmt.Printf("Game dir: %s\n", gameDir)
+fmt.Printf("UserData: %s\n", userDataDir)
+fmt.Printf("JRE: %s\n", jrePath)
+fmt.Printf("================\n")
 
-	if _, err := os.Stat(clientPath); err != nil {
-		return fmt.Errorf("game client not found at %s (instance %s v%d not installed): %w", clientPath, opts.Branch, opts.Version, err)
-	}
+// Prepare auth args
+playerName := session.Username
+uuid := session.UUID
+sessionToken := session.SessionToken
+identityToken := session.IdentityToken
 
-	// Use instance-specific UserData
-	userDataDir := env.GetInstanceUserDataDir(opts.Branch, opts.Version)
-	_ = os.MkdirAll(userDataDir, 0755)
+authMode := "authenticated"
 
-	// Set up Java path
-	var jrePath string
-	jreDir := filepath.Join(baseDir, "jre")
-	
-	switch runtime.GOOS {
-	case "darwin":
-		javaDir := filepath.Join(baseDir, "java")
-		javaHomeBin := filepath.Join(javaDir, "Contents", "Home", "bin")
-		
-		if _, err := os.Stat(javaHomeBin); err != nil {
-			os.RemoveAll(javaDir)
-			os.MkdirAll(filepath.Join(javaDir, "Contents", "Home"), 0755)
-			os.Symlink(filepath.Join(jreDir, "bin"), filepath.Join(javaDir, "Contents", "Home", "bin"))
-			os.Symlink(filepath.Join(jreDir, "lib"), filepath.Join(javaDir, "Contents", "Home", "lib"))
-		}
-		jrePath = filepath.Join(baseDir, "java", "Contents", "Home", "bin", "java")
-	case "windows":
-		jrePath = filepath.Join(jreDir, "bin", "java.exe")
-	default:
-		jrePath = filepath.Join(jreDir, "bin", "java")
-	}
-
-	if _, err := os.Stat(jrePath); err != nil {
-		return fmt.Errorf("Java not found at %s: %w", jrePath, err)
-	}
-
-	// On macOS, sign Java runtime to avoid Gatekeeper issues
-	if runtime.GOOS == "darwin" {
-		signMacOSBinaries(jreDir, jrePath)
-	}
-
-	// Generate UUID from player name
-	uuid := OfflineUUID(opts.PlayerName)
-	uuidStr := uuid.String()
-
-	// Determine auth mode and tokens
-	authMode := "offline"
-	var tokens *auth.AuthTokens
-
-	if opts.OnlineMode {
-		// Online mode: patch binaries and authenticate with server
-		authDomain := opts.AuthDomain
-		if authDomain == "" {
-			authDomain = patcher.DefaultAuthDomain
-		}
-
-		fmt.Printf("Online mode enabled (domain: %s)\n", authDomain)
-		
-		// Create patcher and patch game binaries
-		clientPatcher := patcher.NewClientPatcher(authDomain)
-		fmt.Println("Patching game binaries for online mode...")
-		
-		patchResult := clientPatcher.EnsurePatched(gameDir, func(msg string, percent int) {
-			fmt.Printf("  [%d%%] %s\n", percent, msg)
-		})
-		
-		if !patchResult.Success {
-			return fmt.Errorf("failed to patch game for online mode: %s", patchResult.Error)
-		}
-		
-		if patchResult.AlreadyPatched {
-			fmt.Println("Game already patched for online mode")
-		} else {
-			fmt.Printf("Successfully patched game (%d occurrences)\n", patchResult.PatchCount)
-		}
-		
-		// Note: Signing happens right before launch, not here
-		// This is because macOS needs fresh signature every time
-		
-		// Try to fetch auth tokens from server
-		fmt.Println("Fetching auth tokens...")
-		var err error
-		tokens, err = auth.FetchAuthTokens(uuidStr, opts.PlayerName, authDomain)
-		if err != nil {
-			fmt.Printf("Warning: Failed to fetch auth tokens: %v\n", err)
-			fmt.Println("Falling back to offline mode for this session...")
-			tokens = auth.GenerateLocalTokens(uuidStr, opts.PlayerName)
-			authMode = "offline"
-		} else {
-			fmt.Println("Auth tokens received successfully")
-			authMode = "authenticated"
-		}
-	} else {
-		fmt.Println("Offline mode enabled")
-		tokens = auth.GenerateLocalTokens(uuidStr, opts.PlayerName)
-		authMode = "offline"
-	}
-
-	fmt.Printf("=== LAUNCH INSTANCE ===\n")
-	fmt.Printf("Branch: %s, Version: %d\n", opts.Branch, opts.Version)
-	fmt.Printf("Game dir: %s\n", gameDir)
-	fmt.Printf("UserData: %s\n", userDataDir)
-	fmt.Printf("Auth mode: %s\n", authMode)
-	fmt.Printf("Online mode: %v\n", opts.OnlineMode)
-	fmt.Printf("========================\n")
-
-	// Build common arguments
-	commonArgs := []string{
+var cmd *exec.Cmd
+if runtime.GOOS == "darwin" {
+	appBundlePath := filepath.Join(gameDir, "Client", "Hytale.app")
+	args := []string{
+		"--args",
 		"--app-dir", gameDir,
 		"--user-dir", userDataDir,
 		"--java-exec", jrePath,
 		"--auth-mode", authMode,
-		"--uuid", uuidStr,
-		"--name", opts.PlayerName,
+		"--uuid", uuid,
 	}
-
-	// Add auth tokens if available and in authenticated mode
-	if authMode == "authenticated" && tokens != nil {
-		if tokens.IdentityToken != "" {
-			commonArgs = append(commonArgs, "--identity-token", tokens.IdentityToken)
-		}
-		if tokens.SessionToken != "" {
-			commonArgs = append(commonArgs, "--session-token", tokens.SessionToken)
-		}
+	args = append(args, "--name", playerName, "--session-token", sessionToken, "--identity-token", identityToken)
+	cmd = exec.Command("open", appBundlePath)
+	cmd.Args = append(cmd.Args, args...)
+} else if runtime.GOOS == "windows" {
+	// Windows - launch directly without special working directory
+	args := []string{
+		"--app-dir", gameDir,
+		"--user-dir", userDataDir,
+		"--java-exec", jrePath,
+		"--auth-mode", authMode,
+		"--uuid", uuid,
 	}
-
-	var cmd *exec.Cmd
-	if runtime.GOOS == "darwin" {
-		appBundlePath := filepath.Join(gameDir, "Client", "Hytale.app")
-		
-		// CRITICAL macOS fix: Sign app right before launch every time
-		// This is needed because patching invalidates the signature
-		fmt.Println("Signing Hytale.app for macOS launch...")
-		
-		// Remove all quarantine attributes recursively
-		xattrCmd := exec.Command("xattr", "-cr", appBundlePath)
-		xattrCmd.Run() // Ignore errors
-		
-		// Sign with codesign - use ad-hoc signature
-		// Must use --force to overwrite existing signature after patching
-		codesignCmd := exec.Command("codesign", 
-			"--force",
-			"--deep", 
-			"--sign", "-",
-			"--preserve-metadata=entitlements",
-			appBundlePath)
-		
-		if output, err := codesignCmd.CombinedOutput(); err != nil {
-			fmt.Printf("Signing failed: %s\n", string(output))
-			// Try again without preserve-metadata
-			simpleSign := exec.Command("codesign", "--force", "--deep", "--sign", "-", appBundlePath)
-			if out2, err2 := simpleSign.CombinedOutput(); err2 != nil {
-				fmt.Printf("Warning: Could not sign app: %v\nOutput: %s\n", err2, string(out2))
-			}
-		} else {
-			fmt.Println("App signed successfully")
-		}
-		
-		args := append([]string{appBundlePath, "--args"}, commonArgs...)
-		cmd = exec.Command("open", args...)
-	} else if runtime.GOOS == "windows" {
-		// Windows - launch directly without special working directory
-		cmd = exec.Command(clientPath, commonArgs...)
-		cmd.SysProcAttr = getWindowsSysProcAttr()
+	args = append(args, "--name", playerName, "--session-token", sessionToken, "--identity-token", identityToken)
+	cmd = exec.Command(clientPath, args...)
+	cmd.SysProcAttr = getWindowsSysProcAttr()
+} else {
+	// Linux - must set LD_LIBRARY_PATH to find SDL3_image and other native libraries
+	clientDir := filepath.Join(gameDir, "Client")
+	args := []string{
+		"--app-dir", gameDir,
+		"--user-dir", userDataDir,
+		"--java-exec", jrePath,
+		"--auth-mode", authMode,
+		"--uuid", uuid,
+	}
+	if authMode == "authenticated" && sessionToken != "" {
+		args = append(args, "--name", playerName, "--session-token", sessionToken, "--identity-token", identityToken)
 	} else {
-		// Linux - must set LD_LIBRARY_PATH to find SDL3_image and other native libraries
-		clientDir := filepath.Join(gameDir, "Client")
-		cmd = exec.Command(clientPath, commonArgs...)
-		// Preserve LD_LIBRARY_PATH with Client directory first
-		existingLdPath := os.Getenv("LD_LIBRARY_PATH")
-		newLdPath := clientDir
-		if existingLdPath != "" {
-			newLdPath = fmt.Sprintf("%s:%s", clientDir, existingLdPath)
-		}
-		cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s", newLdPath))
+		args = append(args, "--name", playerName)
+	}
+	cmd = exec.Command(clientPath, args...)
+	// Preserve LD_LIBRARY_PATH with Client directory first
+	existingLdPath := os.Getenv("LD_LIBRARY_PATH")
+	newLdPath := clientDir
+	if existingLdPath != "" {
+		newLdPath = fmt.Sprintf("%s:%s", clientDir, existingLdPath)
+	}
+	cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s", newLdPath))
 	}
 	
-	cmd.Dir = baseDir
+cmd.Dir = gameInstallPath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -360,94 +227,10 @@ func WaitForGameExit() {
 
 // GetGameLogs returns the game log file content
 func GetGameLogs() (string, error) {
-	baseDir := env.GetDefaultAppDir()
-	
-	// Try multiple log paths based on typical Hytale log locations
-	paths := []string{
-		// UserData logs
-		filepath.Join(baseDir, "UserData", "logs", "latest.log"),
-		filepath.Join(baseDir, "UserData", "logs", "game.log"),
-		filepath.Join(baseDir, "UserData", "logs", "client.log"),
-		// Instance logs (latest)
-		filepath.Join(env.GetInstanceGameDir("release", 0), "logs", "latest.log"),
-		filepath.Join(env.GetInstanceGameDir("release", 0), "logs", "game.log"),
-		filepath.Join(env.GetInstanceGameDir("release", 0), "Client", "logs", "latest.log"),
-		// HyPrism specific log
-		filepath.Join(baseDir, "logs", "game.log"),
-	}
-	
-	var allLogs strings.Builder
-	foundAny := false
-	
-	for _, p := range paths {
-		if data, err := os.ReadFile(p); err == nil && len(data) > 0 {
-			foundAny = true
-			allLogs.WriteString(fmt.Sprintf("=== %s ===\n", filepath.Base(p)))
-			
-			content := string(data)
-			// Return last 30KB of each log
-			if len(content) > 30*1024 {
-				content = content[len(content)-30*1024:]
-			}
-			allLogs.WriteString(content)
-			allLogs.WriteString("\n\n")
-		}
-	}
-	
-	if foundAny {
-		return allLogs.String(), nil
-	}
-	
-	// List what directories exist to help debug
-	var debug strings.Builder
-	debug.WriteString("No game logs found. Checking directories:\n\n")
-	
-	checkDirs := []string{
-		filepath.Join(baseDir, "UserData"),
-		filepath.Join(baseDir, "UserData", "logs"),
-		env.GetInstanceDir("release", 0),
-		filepath.Join(env.GetInstanceGameDir("release", 0), "logs"),
-	}
-	
-	for _, dir := range checkDirs {
-		if _, err := os.Stat(dir); err == nil {
-			debug.WriteString(fmt.Sprintf("✓ %s exists\n", dir))
-			// List files in the directory
-			if entries, err := os.ReadDir(dir); err == nil {
-				for _, e := range entries {
-					debug.WriteString(fmt.Sprintf("   - %s\n", e.Name()))
-				}
-			}
-		} else {
-			debug.WriteString(fmt.Sprintf("✗ %s not found\n", dir))
-		}
-	}
-	
-	return debug.String(), nil
+	// Game logs are stored in the official Hytale installation's UserData folder
+	return "Game logs are stored in your official Hytale installation's UserData folder.\nPlease check your Hytale installation directory for logs.", nil
 }
 
-// UUID represents a UUID
-type UUID [16]byte
-
-// OfflineUUID generates an offline UUID from a player name
-func OfflineUUID(name string) UUID {
-	data := "OfflinePlayer:" + name
-	hash := md5.Sum([]byte(data))
-	
-	// Set version to 3 (name-based)
-	hash[6] = (hash[6] & 0x0f) | 0x30
-	// Set variant to 1
-	hash[8] = (hash[8] & 0x3f) | 0x80
-	
-	return UUID(hash)
-}
-
-// String returns the UUID as a string
-func (u UUID) String() string {
-	hex := hex.EncodeToString(u[:])
-	return fmt.Sprintf("%s-%s-%s-%s-%s",
-		hex[0:8], hex[8:12], hex[12:16], hex[16:20], hex[20:32])
-}
 
 // setSDLVideoDriver sets the SDL_VIDEODRIVER environment variable for Linux
 func setSDLVideoDriver(cmd *exec.Cmd) {

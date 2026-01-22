@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, X, Copy, RefreshCw, Bug } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { AlertTriangle, X, Copy, RefreshCw, Info, CheckCircle } from 'lucide-react';
 
 interface ErrorModalProps {
   error: {
@@ -15,7 +13,6 @@ interface ErrorModalProps {
 }
 
 export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
-  const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
 
   const copyError = () => {
@@ -25,37 +22,9 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const reportIssue = () => {
-    const title = encodeURIComponent(`[Bug] ${error.type}: ${error.message}`);
-    const body = encodeURIComponent(
-`## Description
-<!-- Please describe what you were doing when the error occurred -->
-
-## Error Details
-- **Type:** ${error.type}
-- **Message:** ${error.message}
-- **Technical:** ${error.technical || 'N/A'}
-- **Timestamp:** ${error.timestamp || new Date().toISOString()}
-
-## System Info
-- **Platform:** ${navigator.platform}
-- **User Agent:** ${navigator.userAgent}
-
-## Steps to Reproduce
-1. 
-2. 
-3. 
-
-## Additional Context
-<!-- Add any other context about the problem here -->
-`
-    );
-    const url = `https://github.com/yyyumeniku/HyPrism/issues/new?title=${title}&body=${body}&labels=bug`;
-    BrowserOpenURL(url);
-  };
-
   const getErrorColor = (type: string) => {
     switch (type) {
+      case 'INFO': return 'text-green-400';
       case 'NETWORK': return 'text-blue-400';
       case 'FILESYSTEM': return 'text-yellow-400';
       case 'VALIDATION': return 'text-orange-400';
@@ -64,6 +33,9 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
       default: return 'text-red-400';
     }
   };
+
+  const isInfo = error.type === 'INFO';
+  const isSuccess = error.type === 'SUCCESS';
 
   return (
     <motion.div
@@ -77,17 +49,31 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-lg bg-[#0d0d0d] rounded-2xl border border-red-500/20 overflow-hidden"
+        className={`w-full max-w-lg bg-[#0d0d0d] rounded-2xl border overflow-hidden ${
+          isInfo || isSuccess ? 'border-green-500/20' : 'border-red-500/20'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/10 bg-red-500/5">
+        <div className={`flex items-center justify-between p-5 border-b border-white/10 ${
+          isInfo || isSuccess ? 'bg-green-500/5' : 'bg-red-500/5'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-              <AlertTriangle size={20} className="text-red-400" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              isInfo || isSuccess ? 'bg-green-500/20' : 'bg-red-500/20'
+            }`}>
+              {isInfo ? (
+                <Info size={20} className="text-green-400" />
+              ) : isSuccess ? (
+                <CheckCircle size={20} className="text-green-400" />
+              ) : (
+                <AlertTriangle size={20} className="text-red-400" />
+              )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">{t('Error Occurred')}</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isInfo ? 'Information' : isSuccess ? 'Success' : 'Error Occurred'}
+              </h2>
               <span className={`text-xs font-medium ${getErrorColor(error.type)}`}>
                 {error.type}
               </span>
@@ -116,43 +102,38 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ error, onClose }) => {
 
           {error.timestamp && (
             <p className="text-xs text-gray-500">
-              {t('Occurred at:')} {new Date(error.timestamp).toLocaleString()}
+              Occurred at: {new Date(error.timestamp).toLocaleString()}
             </p>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between p-5 border-t border-white/10 bg-black/30">
-          <div className="flex gap-2">
-            <button
-              onClick={copyError}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
-            >
-              <Copy size={14} />
-              {copied ? t('Copied!') : t('Copy Error')}
-            </button>
-            <button
-              onClick={reportIssue}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors text-sm"
-            >
-              <Bug size={14} />
-              {t('Report Issue')}
-            </button>
-          </div>
-
+          <button
+            onClick={copyError}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
+          >
+            <Copy size={14} />
+            {copied ? 'Copied!' : 'Copy Error'}
+          </button>
+          
           <div className="flex gap-3">
             <button
               onClick={() => window.location.reload()}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
             >
               <RefreshCw size={14} />
-              {t('Reload')}
+              Reload
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium text-sm"
+              className={`px-6 py-2 rounded-lg font-medium text-sm transition-colors ${
+                isInfo || isSuccess 
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                  : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+              }`}
             >
-              {t('Dismiss')}
+              Dismiss
             </button>
           </div>
         </div>

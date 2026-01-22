@@ -7,15 +7,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"strings"
 
+	"HyPrism/internal/auth"
 	"HyPrism/internal/config"
 	"HyPrism/internal/env"
 	"HyPrism/internal/game"
 	"HyPrism/internal/mods"
 	"HyPrism/internal/news"
-	"HyPrism/internal/pwr"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -59,11 +57,6 @@ func (a *App) Startup(ctx context.Context) {
 	fmt.Printf("║           Version: %-43s║\n", AppVersion)
 	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
 
-	// Set custom instance directory if configured
-	if a.cfg.CustomInstanceDir != "" {
-		env.SetCustomInstanceDir(a.cfg.CustomInstanceDir)
-		fmt.Printf("Using custom instances directory: %s\n", a.cfg.CustomInstanceDir)
-	}
 
 	// Initialize environment
 	if err := env.CreateFolders(); err != nil {
@@ -84,8 +77,17 @@ func (a *App) Shutdown(ctx context.Context) {
 
 // SelectInstanceDirectory opens a folder picker dialog and saves the selected directory
 func (a *App) SelectInstanceDirectory() (string, error) {
+	// On Windows, start at "This PC" (empty string) to show all drives
+	// This allows easy navigation to different drives
+	defaultDir := ""
+	if runtime.GOOS == "windows" {
+		// Empty string on Windows opens at "This PC" level showing all drives
+		defaultDir = ""
+	}
+	
 	selectedDir, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "Select Instances Directory",
+		Title:            "Select Instances Directory",
+		DefaultDirectory: defaultDir,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to open directory dialog: %w", err)
@@ -96,26 +98,42 @@ func (a *App) SelectInstanceDirectory() (string, error) {
 		return "", nil
 	}
 	
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(selectedDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create directory: %w\n\nPlease ensure:\n• The drive is properly connected\n• You have write permissions\n• The path is valid", err)
+	// This function is no longer used since we use the official Hytale installation
+	return "", fmt.Errorf("custom instance directories are not supported - use official Hytale installation")
+}
+
+// SelectGameInstallDirectory opens a folder picker to select official Hytale installation
+func (a *App) SelectGameInstallDirectory() (string, error) {
+	defaultDir := ""
+	if runtime.GOOS == "windows" {
+		defaultDir = "" // Start at "This PC" to show all drives
 	}
 	
-	// Verify the directory is writable (important for external drives)
-	testFile := filepath.Join(selectedDir, ".hyprism-test")
-	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
-		return "", fmt.Errorf("directory is not writable: %w\n\nPlease check:\n• Drive is not read-only\n• You have write permissions\n• Drive has free space", err)
+	selectedDir, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title:            "Select Hytale Installation Directory",
+		DefaultDirectory: defaultDir,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to open directory dialog: %w", err)
 	}
-	os.Remove(testFile)
+	
+	if selectedDir == "" {
+		return "", nil // User cancelled
+	}
+	
+	// Validate that this looks like a Hytale installation
+	gameDir := filepath.Join(selectedDir, "install", "release", "package", "game", "latest")
+	if _, err := os.Stat(gameDir); os.IsNotExist(err) {
+		return "", fmt.Errorf("invalid Hytale installation: game directory not found at %s", gameDir)
+	}
 	
 	// Save to config
-	a.cfg.CustomInstanceDir = selectedDir
-	env.SetCustomInstanceDir(selectedDir)
+	a.cfg.GameInstallPath = selectedDir
 	if err := config.Save(a.cfg); err != nil {
 		return "", fmt.Errorf("failed to save config: %w", err)
 	}
 	
-	fmt.Printf("Instance directory updated to: %s\n", selectedDir)
+	fmt.Printf("Game install directory set to: %s\n", selectedDir)
 	return selectedDir, nil
 }
 
@@ -152,15 +170,8 @@ func (a *App) GetLauncherVersion() string {
 	return AppVersion
 }
 
-// GetVersions returns current and latest game versions
-func (a *App) GetVersions() (currentVersion string, latestVersion string) {
-	current := pwr.GetLocalVersion()
-	latest := pwr.FindLatestVersion("release")
-	return current, strconv.Itoa(latest)
-}
-
-// DownloadAndLaunch downloads the game if needed and launches it
-func (a *App) DownloadAndLaunch(playerName string) error {
+// Launch launches the game using the official Hytale installation
+func (a *App) Launch(playerName string) error {
 	// Validate nickname
 	if len(playerName) == 0 {
 		err := ValidationError("Please enter a nickname")
@@ -174,30 +185,17 @@ func (a *App) DownloadAndLaunch(playerName string) error {
 		return err
 	}
 
-	// Get configured version type and version
-	versionType := a.GetVersionType()
-	version := a.GetSelectedVersion()
-
-	// Ensure game is installed for the configured version type and version
-	if err := game.EnsureInstalledVersionSpecific(a.ctx, versionType, version, a.progressCallback); err != nil {
-		wrappedErr := GameError("Failed to install or update game", err)
-		a.emitError(wrappedErr)
-		return wrappedErr
+	// Check if game install path is configured
+	if a.cfg.GameInstallPath == "" {
+		err := GameError("Game not configured", fmt.Errorf("please set the Hytale install directory in settings"))
+		a.emitError(err)
+		return err
 	}
 
-	// Launch the game with branch, version, and online mode settings
+	// Launch the game
 	a.progressCallback("launch", 100, "Launching game...", "", "", 0, 0)
 
-	// Use online mode from config
-	opts := game.LaunchOptions{
-		PlayerName: playerName,
-		Branch:     versionType,
-		Version:    version,
-		OnlineMode: a.cfg.OnlineMode,
-		AuthDomain: a.cfg.AuthDomain,
-	}
-
-	if err := game.LaunchInstanceWithOptions(opts); err != nil {
+	if err := game.LaunchInstance(a.cfg.GameInstallPath); err != nil {
 		wrappedErr := GameError("Failed to launch game", err)
 		a.emitError(wrappedErr)
 		return wrappedErr
@@ -371,32 +369,21 @@ func openFolder(path string) error {
 	return cmd.Start()
 }
 
-// OpenGameFolder opens the game folder for latest instance
+// OpenGameFolder opens the configured Hytale game folder
 func (a *App) OpenGameFolder() error {
-	gameDir := env.GetInstanceDir("release", 0)
+	if a.cfg.GameInstallPath == "" {
+		return fmt.Errorf("game install path not configured")
+	}
+	gameDir := filepath.Join(a.cfg.GameInstallPath, "UserData")
 	if err := os.MkdirAll(gameDir, 0755); err != nil {
 		return err
 	}
 	return openFolder(gameDir)
 }
 
-// GetGamePath returns the game installation path for latest instance
-func (a *App) GetGamePath() string {
-	return env.GetInstanceDir("release", 0)
-}
-
-// IsGameInstalled checks if the game is installed (latest instance)
-func (a *App) IsGameInstalled() bool {
-	return env.IsVersionInstalled("release", 0)
-}
-
-// QuickLaunch launches the game with saved nickname
+// QuickLaunch launches the game
 func (a *App) QuickLaunch() error {
-	nick := a.cfg.Nick
-	if nick == "" {
-		nick = "Player"
-	}
-	return a.DownloadAndLaunch(nick)
+	return a.Launch("Player")
 }
 
 // ExitGame terminates the running game process
@@ -414,141 +401,113 @@ func (a *App) GetGameLogs() (string, error) {
 	return game.GetGameLogs()
 }
 
-// GetAvailableVersions returns list of available game versions (release and prerelease)
-func (a *App) GetAvailableVersions() map[string]int {
-	versions := make(map[string]int)
-	versions["release"] = pwr.FindLatestVersion("release")
-	versions["pre-release"] = pwr.FindLatestVersion("pre-release")
-	return versions
-}
 
-// GetVersionList returns all available version numbers for a branch (latest=0, then specific versions)
-func (a *App) GetVersionList(branch string) []int {
-	latest := pwr.FindLatestVersion(branch)
-	if latest <= 0 {
-		return []int{0} // Always include version 0 (latest auto-updating instance)
-	}
-	// Return versions: 0 (latest), then latest down to 1 (newest first)
-	versions := make([]int, latest+1)
-	versions[0] = 0 // Version 0 = auto-updating latest
-	for i := 0; i < latest; i++ {
-		versions[i+1] = latest - i
-	}
-	return versions
-}
+// ==================== AUTHENTICATION ====================
 
-// IsVersionInstalled checks if a specific branch/version combination is installed
-func (a *App) IsVersionInstalled(branch string, version int) bool {
-	return env.IsVersionInstalled(branch, version)
-}
-
-// GetInstalledVersionsForBranch returns all installed version numbers for a specific branch
-func (a *App) GetInstalledVersionsForBranch(branch string) []int {
-	return env.GetInstalledVersions(branch)
-}
-
-// CheckLatestNeedsUpdate checks if the 'latest' instance needs updating
-// Returns true if latest is installed but not at current latest version
-func (a *App) CheckLatestNeedsUpdate(branch string) bool {
-	// Check if latest instance is installed
-	if !env.IsVersionInstalled(branch, 0) {
-		return false
+// LoginWithHytaleAccount initiates the Hytale account login flow
+func (a *App) LoginWithHytaleAccount() error {
+	fmt.Println("Starting Hytale account login...")
+	
+	// Emit progress updates to frontend
+	progressCallback := func(message string) {
+		wailsRuntime.EventsEmit(a.ctx, "auth-progress", message)
+		fmt.Printf("[AUTH] %s\n", message)
 	}
 	
-	// Get the actual latest version number
-	latestVersion := pwr.FindLatestVersion(branch)
-	if latestVersion <= 0 {
-		return false
+	// Browser opener function
+	openBrowser := func(url string) error {
+		return auth.OpenBrowser(url)
 	}
 	
-	// Check if the latest instance has the current version
-	// We can check this by looking at the instance's installed version file
-	instanceDir := env.GetInstanceDir(branch, 0)
-	versionFile := filepath.Join(instanceDir, "version.txt")
-	data, err := os.ReadFile(versionFile)
+	session, err := auth.LoginWithAuthCodeFlow(a.ctx, progressCallback, openBrowser)
 	if err != nil {
-		// No version file means fresh install or corrupted
-		return true
+		return fmt.Errorf("login failed: %w", err)
 	}
 	
-	installedVersionStr := string(data)
-	installedVersionStr = filepath.Base(strings.TrimSpace(installedVersionStr))
-	installedVersion, err := strconv.Atoi(installedVersionStr)
-	if err != nil {
-		return true
+	// Save session
+	if err := auth.SaveSession(session); err != nil {
+		return fmt.Errorf("failed to save session: %w", err)
 	}
 	
-	// If installed version is less than latest, needs update
-	return installedVersion < latestVersion
-}
-
-// GetCurrentVersion returns the currently installed game version with formatted date
-func (a *App) GetCurrentVersion() string {
-	return pwr.GetLocalVersionFull()
-}
-
-// InstalledVersion represents an installed game version
-type InstalledVersion struct {
-	Version     int    `json:"version"`
-	VersionType string `json:"versionType"`
-	InstallDate string `json:"installDate"`
-}
-
-// GetInstalledVersions returns all installed game versions
-func (a *App) GetInstalledVersions() []InstalledVersion {
-	versions := pwr.GetInstalledVersions()
-	result := make([]InstalledVersion, 0, len(versions))
-	for _, v := range versions {
-		result = append(result, InstalledVersion{
-			Version:     v.Version,
-			VersionType: v.VersionType,
-			InstallDate: v.InstallDate,
-		})
-	}
-	return result
-}
-
-// SwitchVersion switches to a different installed version
-func (a *App) SwitchVersion(version int) error {
-	return pwr.SwitchVersion(version)
-}
-
-// DownloadVersion downloads a specific version type
-func (a *App) DownloadVersion(versionType string, playerName string) error {
-	if versionType != "release" && versionType != "prerelease" {
-		return fmt.Errorf("invalid version type: %s", versionType)
-	}
+	wailsRuntime.EventsEmit(a.ctx, "auth-success", map[string]string{
+		"username": session.Username,
+		"uuid":     session.UUID,
+	})
 	
-	// Validate nickname
-	if len(playerName) == 0 {
-		err := ValidationError("Please enter a nickname")
-		a.emitError(err)
-		return err
-	}
-
-	if len(playerName) > 16 {
-		err := ValidationError("Nickname is too long (max 16 characters)")
-		a.emitError(err)
-		return err
-	}
-
-	// Install specific version
-	if err := game.EnsureInstalledVersion(a.ctx, versionType, a.progressCallback); err != nil {
-		wrappedErr := GameError("Failed to install game version", err)
-		a.emitError(wrappedErr)
-		return wrappedErr
-	}
-
-	// Launch the game
-	a.progressCallback("launch", 100, "Launching game...", "", "", 0, 0)
-
-	if err := game.LaunchInstance(playerName, versionType, 0); err != nil {
-		wrappedErr := GameError("Failed to launch game", err)
-		a.emitError(wrappedErr)
-		return wrappedErr
-	}
-
+	fmt.Printf("Successfully logged in as %s (UUID: %s)\n", session.Username, session.UUID)
 	return nil
+}
+
+// LogoutHytaleAccount logs out the current Hytale account
+func (a *App) LogoutHytaleAccount() error {
+	if err := auth.ClearSession(); err != nil {
+		return err
+	}
+	
+	wailsRuntime.EventsEmit(a.ctx, "auth-logout", nil)
+	fmt.Println("Logged out successfully")
+	return nil
+}
+
+// GetAuthStatus returns the current authentication status
+func (a *App) GetAuthStatus() map[string]interface{} {
+	session, err := auth.LoadSession()
+	if err != nil || session == nil {
+		return map[string]interface{}{
+			"logged_in": false,
+		}
+	}
+	
+	// Check if session is expired
+	if session.IsExpired() {
+		return map[string]interface{}{
+			"logged_in": false,
+			"expired":   true,
+		}
+	}
+	
+	return map[string]interface{}{
+		"logged_in": true,
+		"username":  session.Username,
+		"uuid":      session.UUID,
+	}
+}
+
+// OpenAuthURL opens the authentication URL in the default browser
+func (a *App) OpenAuthURL(url string) error {
+	return auth.OpenBrowser(url)
+}
+
+// GetUserProfile returns the current user's profile information
+func (a *App) GetUserProfile() (map[string]string, error) {
+	session, err := auth.GetValidSession()
+	if err != nil {
+		return nil, fmt.Errorf("not logged in: %w", err)
+	}
+	
+	if session == nil {
+		return nil, fmt.Errorf("no active session")
+	}
+	
+	return map[string]string{
+		"username":         session.Username,
+		"uuid":             session.UUID,
+		"account_owner_id": session.AccountOwnerID,
+	}, nil
+}
+
+// GetUserUUID returns just the UUID of the current user
+func (a *App) GetUserUUID() (string, error) {
+	session, err := auth.GetValidSession()
+	if err != nil {
+		return "", fmt.Errorf("not logged in: %w", err)
+	}
+	
+	if session == nil {
+		return "", fmt.Errorf("no active session")
+	}
+	
+	return session.UUID, nil
 }
 
 // ==================== NEWS ====================

@@ -3,6 +3,8 @@ package main
 import (
 	"HyPrism/app"
 	"embed"
+	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -18,6 +20,11 @@ var assets embed.FS
 func main() {
 	// Create an instance of the app structure
 	application := app.NewApp()
+
+	// Get executable directory for portable WebView2
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	webviewDir := filepath.Join(exeDir, "WebView2")
 
 	err := wails.Run(&options.App{
 		Title:         app.AppTitle,
@@ -42,7 +49,7 @@ func main() {
 			WindowIsTranslucent:            false,
 			DisableWindowIcon:              false,
 			DisableFramelessWindowDecorations: false,
-			WebviewUserDataPath:            "",
+			WebviewUserDataPath:            webviewDir,
 			ZoomFactor:                     1.0,
 		},
 		Mac: &mac.Options{

@@ -3,7 +3,6 @@ package app
 import (
 	"HyPrism/internal/env"
 	"HyPrism/internal/java"
-	"HyPrism/internal/pwr/butler"
 	"fmt"
 	"net"
 	"net/http"
@@ -43,10 +42,8 @@ type GameStatusInfo struct {
 }
 
 type DependenciesInfo struct {
-	JavaInstalled   bool   `json:"javaInstalled"`
-	JavaPath        string `json:"javaPath"`
-	ButlerInstalled bool   `json:"butlerInstalled"`
-	ButlerPath      string `json:"butlerPath"`
+	JavaInstalled bool   `json:"javaInstalled"`
+	JavaPath      string `json:"javaPath"`
 }
 
 // RunDiagnostics runs system diagnostics
@@ -92,11 +89,6 @@ func checkConnectivity() ConnectivityInfo {
 		info.GitHub = true
 	}
 
-	// Check itch.io (Butler)
-	resp, err = client.Head("https://broth.itch.zone")
-	if err == nil && resp.StatusCode < 500 {
-		info.ItchIO = true
-	}
 
 	// DNS check
 	_, err = net.LookupHost("game-patches.hytale.com")
@@ -109,37 +101,8 @@ func checkConnectivity() ConnectivityInfo {
 
 func checkGameStatus() GameStatusInfo {
 	info := GameStatusInfo{}
-
-	// Check latest instance (version 0)
-	gameDir := env.GetInstanceGameDir("release", 0)
-
-	// Check if game is installed
-	clientName := "HytaleClient"
-	if runtime.GOOS == "windows" {
-		clientName += ".exe"
-	}
-
-	clientPath := filepath.Join(gameDir, "Client", clientName)
-	if _, err := os.Stat(clientPath); err == nil {
-		info.Installed = true
-		info.ClientExists = true
-	}
-
-	// Check if latest instance is installed
-	if env.IsVersionInstalled("release", 0) {
-		info.Version = "latest"
-	}
-
-	// Check if online fix is applied (Windows only)
-	if runtime.GOOS == "windows" {
-		serverBat := filepath.Join(gameDir, "Server", "start-server.bat")
-		if _, err := os.Stat(serverBat); err == nil {
-			info.OnlineFixApplied = true
-		}
-	} else {
-		info.OnlineFixApplied = true // Not needed on other platforms
-	}
-
+	// Game status not applicable for official installation launcher
+	info.OnlineFixApplied = true
 	return info
 }
 
@@ -151,15 +114,6 @@ func checkDependencies() DependenciesInfo {
 	if err == nil {
 		info.JavaInstalled = true
 		info.JavaPath = javaPath
-	}
-
-	// Check Butler
-	butlerPath, err := butler.GetButlerPath()
-	if err == nil {
-		if _, err := os.Stat(butlerPath); err == nil {
-			info.ButlerInstalled = true
-			info.ButlerPath = butlerPath
-		}
 	}
 
 	return info
@@ -174,7 +128,7 @@ func (a *App) SaveDiagnosticReport() (string, error) {
 		return "", err
 	}
 
-	filename := fmt.Sprintf("diagnostic_%s.txt", time.Now().Format("2006-01-02_15-04-05"))
+	filename := fmt.Sprintf("hyprism_diagnostic_%s.txt", time.Now().Format("2006-01-02_15-04-05"))
 	filepath := filepath.Join(logsDir, filename)
 
 	content := fmt.Sprintf(`HyPrism Diagnostic Report
@@ -200,14 +154,12 @@ Online Fix Applied: %v
 === DEPENDENCIES ===
 Java Installed: %v
 Java Path: %s
-Butler Installed: %v
-Butler Path: %s
 `,
 		report.Timestamp,
 		report.Platform.OS, report.Platform.Arch, report.Platform.Version,
 		report.Connectivity.HytalePatches, report.Connectivity.GitHub, report.Connectivity.ItchIO, report.Connectivity.Error,
 		report.GameStatus.Installed, report.GameStatus.Version, report.GameStatus.ClientExists, report.GameStatus.OnlineFixApplied,
-		report.Dependencies.JavaInstalled, report.Dependencies.JavaPath, report.Dependencies.ButlerInstalled, report.Dependencies.ButlerPath,
+		report.Dependencies.JavaInstalled, report.Dependencies.JavaPath,
 	)
 
 	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
@@ -226,44 +178,6 @@ type CrashReport struct {
 
 // GetCrashReports returns available crash reports
 func (a *App) GetCrashReports() ([]CrashReport, error) {
-	crashDir := filepath.Join(env.GetDefaultAppDir(), "crashes")
-	
-	entries, err := os.ReadDir(crashDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []CrashReport{}, nil
-		}
-		return nil, err
-	}
-
-	var reports []CrashReport
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
-		report := CrashReport{
-			Filename:  entry.Name(),
-			Timestamp: info.ModTime().Format(time.RFC3339),
-		}
-
-		// Read first 500 bytes as preview
-		content, err := os.ReadFile(filepath.Join(crashDir, entry.Name()))
-		if err == nil {
-			if len(content) > 500 {
-				report.Preview = string(content[:500]) + "..."
-			} else {
-				report.Preview = string(content)
-			}
-		}
-
-		reports = append(reports, report)
-	}
-
-	return reports, nil
+	// Crash reports not applicable for official installation launcher
+	return []CrashReport{}, nil
 }

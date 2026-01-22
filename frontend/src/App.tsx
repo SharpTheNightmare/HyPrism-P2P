@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { GameBranch } from './constants/enums';
 import { Titlebar } from './components/Titlebar';
 import { BackgroundImage } from './components/BackgroundImage';
 import { ProfileSection } from './components/ProfileSection';
@@ -8,164 +6,54 @@ import { ControlSection } from './components/ControlSection';
 import { MusicPlayer } from './components/MusicPlayer';
 import { UpdateOverlay } from './components/UpdateOverlay';
 import { ErrorModal } from './components/ErrorModal';
-import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
 import { ModManager } from './components/ModManager';
+import { AuthModal } from './components/AuthModal';
 import hytaleLogo from './assets/logo.png';
 
 import {
-  DownloadAndLaunch,
-  OpenFolder,
-  GetNick,
-  SetNick,
-  DeleteGame,
+  Launch,
   Update,
   ExitGame,
   IsGameRunning,
-  // Version Manager
-  GetVersionType,
-  SetVersionType,
-  SetSelectedVersion,
-  GetVersionList,
-  IsVersionInstalled,
-  GetInstalledVersionsForBranch,
-  CheckLatestNeedsUpdate,
   // Settings
-  SelectInstanceDirectory,
+  SelectGameInstallDirectory,
   GetNews,
   GetLauncherVersion,
+  // Authentication
+  LoginWithHytaleAccount,
+  LogoutHytaleAccount,
+  GetAuthStatus,
+  OpenAuthURL,
 } from '../wailsjs/go/app/App';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { NewsPreview } from './components/NewsPreview';
 
 const App: React.FC = () => {
-  const { t } = useTranslation();
   // User state
   const [username, setUsername] = useState<string>("HyPrism");
-  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [launcherVersion, setLauncherVersion] = useState<string>("dev");
 
-  // Download state
-  const [progress, setProgress] = useState<number>(0);
-  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  // Game state
   const [isGameRunning, setIsGameRunning] = useState<boolean>(false);
-  const [downloaded, setDownloaded] = useState<number>(0);
-  const [total, setTotal] = useState<number>(0);
 
   // Update state
   const [updateAsset, setUpdateAsset] = useState<any>(null);
   const [isUpdatingLauncher, setIsUpdatingLauncher] = useState<boolean>(false);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
   const [updateStats, setUpdateStats] = useState({ d: 0, t: 0 });
 
   // Modal state
-  const [showDelete, setShowDelete] = useState<boolean>(false);
   const [showModManager, setShowModManager] = useState<boolean>(false);
-  const [modManagerSearchQuery, setModManagerSearchQuery] = useState<string>('');
   const [error, setError] = useState<any>(null);
 
-  // Version state
-  const [currentBranch, setCurrentBranch] = useState<string>(GameBranch.RELEASE);
-  const [currentVersion, setCurrentVersion] = useState<number>(0);
-  const [availableVersions, setAvailableVersions] = useState<number[]>([]);
-  const [installedVersions, setInstalledVersions] = useState<number[]>([]);
-  const [isLoadingVersions, setIsLoadingVersions] = useState<boolean>(false);
-  const [isVersionInstalled, setIsVersionInstalled] = useState<boolean>(false);
-  const [isCheckingInstalled, setIsCheckingInstalled] = useState<boolean>(false);
-  // const [customInstanceDir, setCustomInstanceDir] = useState<string>("");
-  const [latestNeedsUpdate, setLatestNeedsUpdate] = useState<boolean>(false);
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [userUUID, setUserUUID] = useState<string>('');
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authMessage, setAuthMessage] = useState<string>('');
+  const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 
-  // Check if current version is installed when branch or version changes
-  useEffect(() => {
-    const checkInstalled = async () => {
-      if (currentVersion === 0) {
-        // Version 0 is the auto-updating "latest" instance
-        // Check if it's actually installed
-        setIsCheckingInstalled(true);
-        try {
-          const installed = await IsVersionInstalled(currentBranch, 0);
-          setIsVersionInstalled(installed);
-          // Check if latest needs update
-          const needsUpdate = await CheckLatestNeedsUpdate(currentBranch);
-          setLatestNeedsUpdate(needsUpdate);
-        } catch (e) {
-          console.error('Failed to check latest instance:', e);
-          setIsVersionInstalled(false);
-          setLatestNeedsUpdate(false);
-        }
-        setIsCheckingInstalled(false);
-        return;
-      }
-      if (currentVersion < 0) {
-        // Uninitialized or invalid version
-        setIsVersionInstalled(false);
-        setLatestNeedsUpdate(false);
-        return;
-      }
-      setIsCheckingInstalled(true);
-      try {
-        const installed = await IsVersionInstalled(currentBranch, currentVersion);
-        setIsVersionInstalled(installed);
-        setLatestNeedsUpdate(false); // Versioned instances don't auto-update
-      } catch (e) {
-        console.error('Failed to check if version installed:', e);
-        setIsVersionInstalled(false);
-        setLatestNeedsUpdate(false);
-      }
-      setIsCheckingInstalled(false);
-    };
-    checkInstalled();
-  }, [currentBranch, currentVersion]);
 
-  // Load version list when branch changes
-  useEffect(() => {
-    const loadVersions = async () => {
-      setIsLoadingVersions(true);
-      try {
-        const versions = await GetVersionList(currentBranch);
-        setAvailableVersions(versions || []);
-
-        // Load installed versions
-        const installed = await GetInstalledVersionsForBranch(currentBranch);
-        setInstalledVersions(installed || []);
-
-        // If current version is not valid for this branch, set to latest
-        if (versions && !versions.includes(currentVersion) && versions.length > 0) {
-          setCurrentVersion(versions[0]);
-          await SetSelectedVersion(versions[0]);
-        }
-      } catch (e) {
-        console.error('Failed to load versions:', e);
-        setAvailableVersions([]);
-        setInstalledVersions([]);
-      }
-      setIsLoadingVersions(false);
-    };
-    loadVersions();
-  }, [currentBranch]);
-
-  // Handle branch change - immediately load and set latest version for new branch
-  const handleBranchChange = async (branch: string) => {
-    setCurrentBranch(branch);
-    await SetVersionType(branch);
-
-    // Load versions for new branch and set to latest (version 0)
-    setIsLoadingVersions(true);
-    try {
-      const versions = await GetVersionList(branch);
-      setAvailableVersions(versions);
-      // Always set to "latest" (version 0) when switching branches
-      setCurrentVersion(0);
-      await SetSelectedVersion(0);
-    } catch (e) {
-      console.error('Failed to load versions for branch:', e);
-    }
-    setIsLoadingVersions(false);
-  };
-
-  // Handle version change
-  const handleVersionChange = async (version: number) => {
-    setCurrentVersion(version);
-    await SetSelectedVersion(version);
-  };
 
   // Game state polling
   useEffect(() => {
@@ -176,89 +64,38 @@ const App: React.FC = () => {
         const running = await IsGameRunning();
         if (!running) {
           setIsGameRunning(false);
-          setProgress(0);
         }
       } catch (e) {
         console.error('Failed to check game state:', e);
       }
-    }, 3000); // Check every 3 seconds (reduced frequency)
+    }, 3000);
 
     return () => clearInterval(pollInterval);
   }, [isGameRunning]);
 
   useEffect(() => {
-    // Initialize user settings
-    GetNick().then((n: string) => n && setUsername(n));
-    GetLauncherVersion().then((v: string) => setLauncherVersion(v));
-    // GetCustomInstanceDir().then((dir: string) => setCustomInstanceDir(dir));
-
-    // Load saved branch and version - must load branch first, then version
-    const loadSettings = async () => {
+    // Check auth status on startup
+    const checkAuth = async () => {
       try {
-        // Get saved branch (defaults to "release" in backend if not set)
-        const savedBranch = await GetVersionType();
-        const branch = savedBranch || GameBranch.RELEASE;
-        setCurrentBranch(branch);
-
-        // Load version list for this branch
-        setIsLoadingVersions(true);
-        const versions = await GetVersionList(branch);
-        setAvailableVersions(versions);
-
-        // Load installed versions
-        const installed = await GetInstalledVersionsForBranch(branch);
-        setInstalledVersions(installed);
-
-        // Check if "latest" (version 0) is installed first
-        const latestInstalled = await IsVersionInstalled(branch, 0);
-
-        if (latestInstalled) {
-          // Use latest if installed
-          setCurrentVersion(0);
-          await SetSelectedVersion(0);
-          setIsVersionInstalled(true);
-        } else if (installed && installed.length > 0) {
-          // If latest not installed but other versions exist, select the highest installed version
-          const highestInstalled = Math.max(...installed.filter(v => v > 0));
-          if (highestInstalled > 0) {
-            setCurrentVersion(highestInstalled);
-            await SetSelectedVersion(highestInstalled);
-            setIsVersionInstalled(true);
-          } else {
-            // Only version 0 in the list but not actually installed
-            setCurrentVersion(0);
-            await SetSelectedVersion(0);
-            setIsVersionInstalled(false);
-          }
-        } else {
-          // No versions installed, default to latest
-          setCurrentVersion(0);
-          await SetSelectedVersion(0);
-          setIsVersionInstalled(false);
+        const authStatus = await GetAuthStatus();
+        if (authStatus.logged_in) {
+          setIsLoggedIn(true);
+          setUsername(authStatus.username || 'HyPrism');
+          setUserUUID(authStatus.uuid || '');
         }
-
-        setIsLoadingVersions(false);
-      } catch (e) {
-        console.error('Failed to load settings:', e);
-        setIsLoadingVersions(false);
+      } catch (err) {
+        console.error('Failed to check auth status:', err);
       }
     };
-    loadSettings();
+    checkAuth();
+
+    // Initialize launcher version
+    GetLauncherVersion().then((v: string) => setLauncherVersion(v));
 
     // Event listeners
     const unsubProgress = EventsOn('progress-update', (data: any) => {
-      setProgress(data.progress);
-      setDownloaded(data.downloaded);
-      setTotal(data.total);
-
-      // When launch stage is received, game is starting
       if (data.stage === 'launch') {
         setIsGameRunning(true);
-        setIsDownloading(false);
-        setProgress(0);
-
-        // Game is now installed, update state
-        setIsVersionInstalled(true);
       }
     });
 
@@ -269,13 +106,39 @@ const App: React.FC = () => {
     });
 
     const unsubUpdateProgress = EventsOn('update:progress', (_stage: string, progress: number, _message: string, _file: string, _speed: string, downloaded: number, total: number) => {
-      setProgress(progress);
+      setUpdateProgress(progress);
       setUpdateStats({ d: downloaded, t: total });
     });
 
     const unsubError = EventsOn('error', (err: any) => {
       setError(err);
-      setIsDownloading(false);
+    });
+
+    // Auth event listeners
+    const unsubAuthProgress = EventsOn('auth-progress', (message: string) => {
+      console.log('Auth progress:', message);
+      setAuthMessage(message);
+    });
+
+    const unsubAuthSuccess = EventsOn('auth-success', (data: any) => {
+      console.log('Auth success:', data);
+      setIsLoggedIn(true);
+      setUsername(data.username);
+      setUserUUID(data.uuid);
+      setAuthMessage(`Logged in as: ${data.username}`);
+      setIsAuthenticating(false);
+      // Close modal after a delay to show success message
+      setTimeout(() => {
+        setShowAuthModal(false);
+        setAuthMessage('');
+      }, 2000);
+    });
+
+    const unsubAuthLogout = EventsOn('auth-logout', () => {
+      console.log('Logged out');
+      setIsLoggedIn(false);
+      setUserUUID('');
+      setUsername('HyPrism');
     });
 
     return () => {
@@ -283,12 +146,15 @@ const App: React.FC = () => {
       unsubUpdate();
       unsubUpdateProgress();
       unsubError();
+      unsubAuthProgress();
+      unsubAuthSuccess();
+      unsubAuthLogout();
     };
   }, []);
 
   const handleUpdate = async () => {
     setIsUpdatingLauncher(true);
-    setProgress(0);
+    setUpdateProgress(0);
     setUpdateStats({ d: 0, t: 0 });
 
     try {
@@ -297,7 +163,7 @@ const App: React.FC = () => {
       console.error('Update failed:', err);
       setError({
         type: 'UPDATE_ERROR',
-        message: t('Failed to update launcher'),
+        message: 'Failed to update launcher',
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });
@@ -309,30 +175,19 @@ const App: React.FC = () => {
     if (!username.trim() || username.length > 16) {
       setError({
         type: 'VALIDATION',
-        message: t('Invalid Nickname'),
-        technical: t('Nickname must be between 1 and 16 characters'),
+        message: 'Invalid Nickname',
+        technical: 'Nickname must be between 1 and 16 characters',
         timestamp: new Date().toISOString()
       });
       return;
     }
 
-    setIsDownloading(true);
     try {
-      await DownloadAndLaunch(username);
-      // Button state will be managed by progress events:
-      // - 'launch' event sets isGameRunning=true and isDownloading=false
-      // - 'error' event sets isDownloading=false
+      await Launch(username);
     } catch (err) {
       console.error('Launch failed:', err);
-      setIsDownloading(false);
     }
   };
-
-  const handleNickChange = async (newNick: string) => {
-    setUsername(newNick);
-    await SetNick(newNick);
-  };
-
 
   const handleExit = async () => {
     try {
@@ -341,51 +196,69 @@ const App: React.FC = () => {
       console.error('Failed to exit game:', err);
     }
     setIsGameRunning(false);
-    setProgress(0);
   };
 
-  const handleCustomDirChange = async () => {
+  const handleLogin = async () => {
     try {
-      const selectedDir = await SelectInstanceDirectory();
-      if (selectedDir) {
-        console.log('Instance directory updated to:', selectedDir);
+      setShowAuthModal(true);
+      setIsAuthenticating(true);
+      setAuthMessage('');
+      await LoginWithHytaleAccount();
+    } catch (err) {
+      console.error('Login failed:', err);
+      setIsAuthenticating(false);
+      setShowAuthModal(false);
+      setError({
+        type: 'AUTH_ERROR',
+        message: 'Failed to login',
+        technical: err instanceof Error ? err.message : String(err),
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
 
-        // Show info about what gets moved
+  const handleLogout = async () => {
+    try {
+      await LogoutHytaleAccount();
+      setIsLoggedIn(false);
+      setUserUUID('');
+      setUsername('HyPrism');
+    } catch (err) {
+      console.error('Logout failed:', err);
+      setError({
+        type: 'AUTH_ERROR',
+        message: 'Failed to logout',
+        technical: err instanceof Error ? err.message : String(err),
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  const handleOpenAuthURL = async (url: string) => {
+    try {
+      await OpenAuthURL(url);
+    } catch (err) {
+      console.error('Failed to open auth URL:', err);
+    }
+  };
+
+  const handleGameLocationChange = async () => {
+    try {
+      const selectedDir = await SelectGameInstallDirectory();
+      if (selectedDir) {
+        console.log('Game install directory updated to:', selectedDir);
         setError({
           type: 'INFO',
-          message: t('Instance Directory Updated'),
-          technical: t('Game instances will now be stored in:\n{{dir}}\n\nNote: The following remain in AppData:\n• Java Runtime (JRE)\n• Butler tool\n• Cache files\n• Logs\n• Launcher settings\n• WebView2 (EBWebView folder)\n\nYou may need to reinstall the game if switching drives.', { dir: selectedDir }),
+          message: 'Game Location Updated',
+          technical: `HyPrism will now use the official Hytale installation at:\n${selectedDir}`,
           timestamp: new Date().toISOString()
         });
-
-        // Reload version list and check installed versions for new directory
-        setIsLoadingVersions(true);
-        try {
-          const versions = await GetVersionList(currentBranch);
-          setAvailableVersions(versions || []);
-
-          const installed = await GetInstalledVersionsForBranch(currentBranch);
-          setInstalledVersions(installed || []);
-
-          // Re-check if current version is installed in new directory
-          const isInstalled = await IsVersionInstalled(currentBranch, currentVersion);
-          setIsVersionInstalled(isInstalled);
-
-          // Check if latest needs update
-          if (currentVersion === 0) {
-            const needsUpdate = await CheckLatestNeedsUpdate(currentBranch);
-            setLatestNeedsUpdate(needsUpdate);
-          }
-        } catch (e) {
-          console.error('Failed to reload versions after directory change:', e);
-        }
-        setIsLoadingVersions(false);
       }
     } catch (err) {
-      console.error('Failed to change instance directory:', err);
+      console.error('Failed to change game install directory:', err);
       setError({
         type: 'SETTINGS_ERROR',
-        message: t('Failed to change instance directory'),
+        message: 'Failed to change game install directory',
         technical: err instanceof Error ? err.message : String(err),
         timestamp: new Date().toISOString()
       });
@@ -404,7 +277,7 @@ const App: React.FC = () => {
 
       {isUpdatingLauncher && (
         <UpdateOverlay
-          progress={progress}
+          progress={updateProgress}
           downloaded={updateStats.d}
           total={updateStats.t}
         />
@@ -414,12 +287,13 @@ const App: React.FC = () => {
         <div className="flex justify-between items-start">
           <ProfileSection
             username={username}
-            isEditing={isEditing}
-            onEditToggle={setIsEditing}
-            onUserChange={handleNickChange}
             updateAvailable={!!updateAsset}
             onUpdate={handleUpdate}
             launcherVersion={launcherVersion}
+            isLoggedIn={isLoggedIn}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            uuid={userUUID}
           />
           {/* Hytale Logo & News - Right Side */}
           <div className="flex flex-col items-end gap-3">
@@ -430,46 +304,17 @@ const App: React.FC = () => {
 
         <ControlSection
           onPlay={handlePlay}
-          onDownload={handlePlay}
           onExit={handleExit}
-          isDownloading={isDownloading}
           isGameRunning={isGameRunning}
-          isVersionInstalled={isVersionInstalled}
-          isCheckingInstalled={isCheckingInstalled}
-          progress={progress}
-          downloaded={downloaded}
-          total={total}
-          currentBranch={currentBranch}
-          currentVersion={currentVersion}
-          availableVersions={availableVersions}
-          installedVersions={installedVersions}
-          isLoadingVersions={isLoadingVersions}
-          latestNeedsUpdate={latestNeedsUpdate}
-          onBranchChange={handleBranchChange}
-          onVersionChange={handleVersionChange}
-          onCustomDirChange={handleCustomDirChange}
+          isLoggedIn={isLoggedIn}
+          onGameLocationChange={handleGameLocationChange}
           actions={{
-            openFolder: OpenFolder,
-            showDelete: () => setShowDelete(true),
-            showModManager: (query?: string) => {
-              setModManagerSearchQuery(query || '');
-              setShowModManager(true);
-            }
+            showModManager: () => setShowModManager(true)
           }}
         />
       </main>
 
       {/* Modals */}
-      {showDelete && (
-        <DeleteConfirmationModal
-          onConfirm={() => {
-            DeleteGame();
-            setShowDelete(false);
-          }}
-          onCancel={() => setShowDelete(false)}
-        />
-      )}
-
       {error && (
         <ErrorModal
           error={error}
@@ -480,11 +325,23 @@ const App: React.FC = () => {
       {showModManager && (
         <ModManager
           onClose={() => setShowModManager(false)}
-          currentBranch={currentBranch}
-          currentVersion={currentVersion}
-          initialSearchQuery={modManagerSearchQuery}
+          currentBranch="release"
+          currentVersion={0}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setIsAuthenticating(false);
+          setAuthMessage('');
+        }}
+        authMessage={authMessage}
+        isAuthenticating={isAuthenticating}
+        onOpenURL={handleOpenAuthURL}
+      />
     </div>
   );
 };

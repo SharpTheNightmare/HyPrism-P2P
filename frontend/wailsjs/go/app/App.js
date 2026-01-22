@@ -6,10 +6,6 @@ export function CheckInstanceModUpdates(arg1, arg2) {
   return window['go']['app']['App']['CheckInstanceModUpdates'](arg1, arg2);
 }
 
-export function CheckLatestNeedsUpdate(arg1) {
-  return window['go']['app']['App']['CheckLatestNeedsUpdate'](arg1);
-}
-
 export function CheckModUpdates() {
   return window['go']['app']['App']['CheckModUpdates']();
 }
@@ -18,36 +14,12 @@ export function CheckUpdate() {
   return window['go']['app']['App']['CheckUpdate']();
 }
 
-export function CheckVersionAvailability() {
-  return window['go']['app']['App']['CheckVersionAvailability']();
-}
-
-export function DeleteGame() {
-  return window['go']['app']['App']['DeleteGame']();
-}
-
-export function DownloadAndLaunch(arg1) {
-  return window['go']['app']['App']['DownloadAndLaunch'](arg1);
-}
-
-export function DownloadVersion(arg1, arg2) {
-  return window['go']['app']['App']['DownloadVersion'](arg1, arg2);
-}
-
 export function ExitGame() {
   return window['go']['app']['App']['ExitGame']();
 }
 
-export function GetAuthDomain() {
-  return window['go']['app']['App']['GetAuthDomain']();
-}
-
-export function GetAutoUpdateLatest() {
-  return window['go']['app']['App']['GetAutoUpdateLatest']();
-}
-
-export function GetAvailableVersions() {
-  return window['go']['app']['App']['GetAvailableVersions']();
+export function GetAuthStatus() {
+  return window['go']['app']['App']['GetAuthStatus']();
 }
 
 export function GetConfig() {
@@ -58,32 +30,12 @@ export function GetCrashReports() {
   return window['go']['app']['App']['GetCrashReports']();
 }
 
-export function GetCurrentVersion() {
-  return window['go']['app']['App']['GetCurrentVersion']();
-}
-
-export function GetCustomInstanceDir() {
-  return window['go']['app']['App']['GetCustomInstanceDir']();
-}
-
 export function GetGameLogs() {
   return window['go']['app']['App']['GetGameLogs']();
 }
 
-export function GetGamePath() {
-  return window['go']['app']['App']['GetGamePath']();
-}
-
 export function GetInstalledMods() {
   return window['go']['app']['App']['GetInstalledMods']();
-}
-
-export function GetInstalledVersions() {
-  return window['go']['app']['App']['GetInstalledVersions']();
-}
-
-export function GetInstalledVersionsForBranch(arg1) {
-  return window['go']['app']['App']['GetInstalledVersionsForBranch'](arg1);
 }
 
 export function GetInstanceInstalledMods(arg1, arg2) {
@@ -118,32 +70,16 @@ export function GetNews(arg1) {
   return window['go']['app']['App']['GetNews'](arg1);
 }
 
-export function GetNick() {
-  return window['go']['app']['App']['GetNick']();
-}
-
-export function GetOnlineMode() {
-  return window['go']['app']['App']['GetOnlineMode']();
-}
-
 export function GetPlatformInfo() {
   return window['go']['app']['App']['GetPlatformInfo']();
 }
 
-export function GetSelectedVersion() {
-  return window['go']['app']['App']['GetSelectedVersion']();
+export function GetUserProfile() {
+  return window['go']['app']['App']['GetUserProfile']();
 }
 
-export function GetVersionList(arg1) {
-  return window['go']['app']['App']['GetVersionList'](arg1);
-}
-
-export function GetVersionType() {
-  return window['go']['app']['App']['GetVersionType']();
-}
-
-export function GetVersions() {
-  return window['go']['app']['App']['GetVersions']();
+export function GetUserUUID() {
+  return window['go']['app']['App']['GetUserUUID']();
 }
 
 export function InstallMod(arg1) {
@@ -162,20 +98,24 @@ export function InstallModToInstance(arg1, arg2, arg3) {
   return window['go']['app']['App']['InstallModToInstance'](arg1, arg2, arg3);
 }
 
-export function IsGameInstalled() {
-  return window['go']['app']['App']['IsGameInstalled']();
-}
-
 export function IsGameRunning() {
   return window['go']['app']['App']['IsGameRunning']();
 }
 
-export function IsVersionInstalled(arg1, arg2) {
-  return window['go']['app']['App']['IsVersionInstalled'](arg1, arg2);
+export function Launch(arg1) {
+  return window['go']['app']['App']['Launch'](arg1);
 }
 
-export function OpenFolder() {
-  return window['go']['app']['App']['OpenFolder']();
+export function LoginWithHytaleAccount() {
+  return window['go']['app']['App']['LoginWithHytaleAccount']();
+}
+
+export function LogoutHytaleAccount() {
+  return window['go']['app']['App']['LogoutHytaleAccount']();
+}
+
+export function OpenAuthURL(arg1) {
+  return window['go']['app']['App']['OpenAuthURL'](arg1);
 }
 
 export function OpenGameFolder() {
@@ -194,10 +134,6 @@ export function QuickLaunch() {
   return window['go']['app']['App']['QuickLaunch']();
 }
 
-export function RepairInstallation() {
-  return window['go']['app']['App']['RepairInstallation']();
-}
-
 export function RunDiagnostics() {
   return window['go']['app']['App']['RunDiagnostics']();
 }
@@ -214,44 +150,16 @@ export function SearchMods(arg1, arg2, arg3) {
   return window['go']['app']['App']['SearchMods'](arg1, arg2, arg3);
 }
 
+export function SelectGameInstallDirectory() {
+  return window['go']['app']['App']['SelectGameInstallDirectory']();
+}
+
 export function SelectInstanceDirectory() {
   return window['go']['app']['App']['SelectInstanceDirectory']();
 }
 
-export function SetAuthDomain(arg1) {
-  return window['go']['app']['App']['SetAuthDomain'](arg1);
-}
-
-export function SetAutoUpdateLatest(arg1) {
-  return window['go']['app']['App']['SetAutoUpdateLatest'](arg1);
-}
-
-export function SetCustomInstanceDir(arg1) {
-  return window['go']['app']['App']['SetCustomInstanceDir'](arg1);
-}
-
 export function SetMusicEnabled(arg1) {
   return window['go']['app']['App']['SetMusicEnabled'](arg1);
-}
-
-export function SetNick(arg1) {
-  return window['go']['app']['App']['SetNick'](arg1);
-}
-
-export function SetOnlineMode(arg1) {
-  return window['go']['app']['App']['SetOnlineMode'](arg1);
-}
-
-export function SetSelectedVersion(arg1) {
-  return window['go']['app']['App']['SetSelectedVersion'](arg1);
-}
-
-export function SetVersionType(arg1) {
-  return window['go']['app']['App']['SetVersionType'](arg1);
-}
-
-export function SwitchVersion(arg1) {
-  return window['go']['app']['App']['SwitchVersion'](arg1);
 }
 
 export function ToggleInstanceMod(arg1, arg2, arg3, arg4) {
